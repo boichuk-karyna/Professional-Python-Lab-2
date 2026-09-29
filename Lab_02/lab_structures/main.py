@@ -7,6 +7,7 @@ from book_processor.analytics import (
     create_record,
     create_year_filter,
     filter_books,
+    find_book_by_id,
     find_book_by_title,
     find_largest_book,
     sort_books_by_year,
@@ -31,10 +32,10 @@ def print_books(
     title: str,
     items: list[dict],
 ) -> None:
-    """Виведення книг у табличному форматі."""
+    """Виведення книг у вигляді таблиці."""
 
     print(f"\n{title}")
-    print("-" * 85)
+    print("-" * 100)
 
     print(
         f"{'ID':<5}"
@@ -44,7 +45,7 @@ def print_books(
         f"{'Стор.':<8}"
     )
 
-    print("-" * 85)
+    print("-" * 100)
 
     for book in items:
         print(
@@ -56,7 +57,7 @@ def print_books(
         )
 
 
-def find_book_linear(
+def find_linear(
     books_data: list[dict],
     book_id: int,
 ) -> dict | None:
@@ -70,12 +71,11 @@ def find_book_linear(
 
 
 def run_benchmark() -> None:
-    """
-    Порівняння лінійного пошуку у list
-    та пошуку у dict.
-    """
+    """Порівняння пошуку у list та dict."""
 
-    print("\n--- ЕКСПЕРИМЕНТАЛЬНА ЧАСТИНА ---")
+    print(
+        "\n--- ЕКСПЕРИМЕНТАЛЬНА ЧАСТИНА ---"
+    )
 
     sizes = [
         1_000,
@@ -83,41 +83,51 @@ def run_benchmark() -> None:
         100_000,
     ]
 
-    for size in sizes:
+    print(
+        f"\n{'Records':>10}"
+        f"{'List search':>20}"
+        f"{'Dict build':>20}"
+        f"{'Dict search':>20}"
+    )
 
+    print("-" * 75)
+
+    for size in sizes:
         test_books = [
             {
                 "id": i,
                 "title": f"Book {i}",
                 "author": f"Author {i % 100}",
-                "year": random.randint(1900, 2025),
-                "pages": random.randint(100, 1000),
+                "year": random.randint(
+                    1900,
+                    2025,
+                ),
+                "pages": random.randint(
+                    100,
+                    1000,
+                ),
             }
             for i in range(size)
         ]
 
         target_id = size - 1
 
-        # -------------------------
         # Пошук у list
-        # -------------------------
-
         start = perf_counter()
 
-        find_book_linear(
+        find_linear(
             test_books,
             target_id,
         )
 
-        list_time = perf_counter() - start
+        list_time = (
+            perf_counter() - start
+        )
 
-        # -------------------------
         # Побудова dict
-        # -------------------------
-
         start = perf_counter()
 
-        book_index = {
+        index = {
             book["id"]: book
             for book in test_books
         }
@@ -126,40 +136,24 @@ def run_benchmark() -> None:
             perf_counter() - start
         )
 
-        # -------------------------
         # Пошук у dict
-        # -------------------------
-
         start = perf_counter()
 
-        book_index.get(target_id)
+        index.get(target_id)
 
         dict_search_time = (
             perf_counter() - start
         )
 
         print(
-            f"\n{size:>8} записів:"
-        )
-
-        print(
-            f"  list search:       "
-            f"{list_time:.8f} с"
-        )
-
-        print(
-            f"  dict build:        "
-            f"{dict_build_time:.8f} с"
-        )
-
-        print(
-            f"  dict search:       "
-            f"{dict_search_time:.8f} с"
+            f"{size:>10}"
+            f"{list_time:>20.8f}"
+            f"{dict_build_time:>20.8f}"
+            f"{dict_search_time:>20.8f}"
         )
 
 
 def main() -> None:
-
     print(
         "=== АНАЛІЗ СИСТЕМИ ОБЛІКУ КНИГ ==="
     )
@@ -185,7 +179,7 @@ def main() -> None:
     )
 
     # ----------------------------------
-    # Усі книги
+    # List
     # ----------------------------------
 
     print_books(
@@ -194,7 +188,7 @@ def main() -> None:
     )
 
     # ----------------------------------
-    # Унікальні автори
+    # Set comprehension
     # ----------------------------------
 
     authors = get_unique_authors(
@@ -202,16 +196,118 @@ def main() -> None:
     )
 
     print(
-        "\nУнікальні автори (Set):"
+        "\nУнікальні автори:"
     )
 
     for author in sorted(authors):
+        print(f"- {author}")
+
+    # ----------------------------------
+    # Average
+    # ----------------------------------
+
+    average_pages = calculate_average_pages(
+        books
+    )
+
+    print(
+        f"\nСередня кількість сторінок: "
+        f"{average_pages:.2f}"
+    )
+
+    # ----------------------------------
+    # Largest book
+    # ----------------------------------
+
+    largest = find_largest_book(
+        books
+    )
+
+    if largest is not None:
         print(
-            f" - {author}"
+            "\nНайбільша книга:"
+        )
+        print(
+            f"{largest['title']} — "
+            f"{largest['pages']} стор."
         )
 
     # ----------------------------------
-    # Групування за авторами
+    # Search by title
+    # ----------------------------------
+
+    search_title = "1984"
+
+    found_by_title = find_book_by_title(
+        books,
+        search_title,
+    )
+
+    print(
+        f"\nПошук за назвою "
+        f"'{search_title}':"
+    )
+
+    print(found_by_title)
+
+    # ----------------------------------
+    # Search by ID
+    # ----------------------------------
+
+    found_by_id = find_book_by_id(
+        books,
+        3,
+    )
+
+    print(
+        "\nПошук за ID = 3:"
+    )
+
+    print(found_by_id)
+
+    # ----------------------------------
+    # Filter by year
+    # ----------------------------------
+
+    books_after_1950 = filter_by_year(
+        books,
+        1950,
+    )
+
+    print_books(
+        "Книги з 1950 року",
+        books_after_1950,
+    )
+
+    # ----------------------------------
+    # Filter by author
+    # ----------------------------------
+
+    orwell_books = filter_by_author(
+        books,
+        "George Orwell",
+    )
+
+    print_books(
+        "Книги George Orwell",
+        orwell_books,
+    )
+
+    # ----------------------------------
+    # Sorting
+    # ----------------------------------
+
+    sorted_books = sort_books_by_year(
+        books
+    )
+
+    print_books(
+        "Сортування за роком видання",
+        sorted_books,
+    )
+
+    # ----------------------------------
+    # Grouping
     # ----------------------------------
 
     grouped = group_books_by_author(
@@ -219,12 +315,12 @@ def main() -> None:
     )
 
     print(
-        "\nГрупування книг за авторами:"
+        "\nГрупування за авторами:"
     )
 
     for author, author_books in grouped.items():
         print(
-            f" - {author}: "
+            f"{author}: "
             f"{len(author_books)} книг"
         )
 
@@ -243,100 +339,10 @@ def main() -> None:
     print(counter)
 
     # ----------------------------------
-    # Середня кількість сторінок
+    # Dict comprehension / index
     # ----------------------------------
 
-    average_pages = calculate_average_pages(
-        books
-    )
-
-    print(
-        f"\nСередня кількість сторінок: "
-        f"{average_pages:.2f}"
-    )
-
-    # ----------------------------------
-    # Найбільша книга
-    # ----------------------------------
-
-    largest = find_largest_book(
-        books
-    )
-
-    if largest:
-        print(
-            "\nНайбільша книга:"
-        )
-
-        print(
-            f"{largest['title']} — "
-            f"{largest['pages']} стор."
-        )
-
-    # ----------------------------------
-    # Пошук за назвою
-    # ----------------------------------
-
-    search_title = "1984"
-
-    found = find_book_by_title(
-        books,
-        search_title,
-    )
-
-    print(
-        f"\nПошук книги "
-        f"'{search_title}':"
-    )
-
-    print(found)
-
-    # ----------------------------------
-    # Фільтрація за роком
-    # ----------------------------------
-
-    recent_books = filter_by_year(
-        books,
-        1950,
-    )
-
-    print_books(
-        "Книги, видані після 1950 року",
-        recent_books,
-    )
-
-    # ----------------------------------
-    # Фільтрація за автором
-    # ----------------------------------
-
-    orwell_books = filter_by_author(
-        books,
-        "George Orwell",
-    )
-
-    print_books(
-        "Книги George Orwell",
-        orwell_books,
-    )
-
-    # ----------------------------------
-    # Сортування
-    # ----------------------------------
-
-    sorted_books = sort_books_by_year(
-        books
-    )
-
-    print_books(
-        "Книги, відсортовані за роком",
-        sorted_books,
-    )
-
-    # ----------------------------------
-    # Dict index
-    # ----------------------------------
-
-    book_index = create_book_index(
+    index = create_book_index(
         books
     )
 
@@ -346,7 +352,7 @@ def main() -> None:
 
     print(
         "Книга з ID=3:",
-        book_index.get(3),
+        index.get(3),
     )
 
     # ----------------------------------
@@ -357,15 +363,14 @@ def main() -> None:
         2000
     )
 
-    recent_via_closure = filter_books(
+    recent_books = filter_books(
         books,
         is_recent,
     )
 
     print_books(
-        "Фільтрація через Closure "
-        "(рік >= 2000)",
-        recent_via_closure,
+        "Closure: книги з 2000 року",
+        recent_books,
     )
 
     # ----------------------------------

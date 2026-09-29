@@ -14,8 +14,8 @@ def measure_time(func):
         elapsed = perf_counter() - start
 
         print(
-            f"[BENCHMARK] Функція '{func.__name__}' "
-            f"виконалась за {elapsed:.8f} с"
+            f"[BENCHMARK] {func.__name__}: "
+            f"{elapsed:.8f} s"
         )
 
         return result

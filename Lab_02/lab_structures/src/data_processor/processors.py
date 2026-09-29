@@ -1,8 +1,10 @@
 from collections import Counter, defaultdict
 
 
-def get_unique_authors(books: list[dict]) -> set[str]:
-    """Set comprehension: отримання унікальних авторів."""
+def get_unique_authors(
+    books: list[dict],
+) -> set[str]:
+    """Отримання множини унікальних авторів."""
 
     return {
         book["author"]
@@ -10,8 +12,10 @@ def get_unique_authors(books: list[dict]) -> set[str]:
     }
 
 
-def create_book_index(books: list[dict]) -> dict[int, dict]:
-    """Dict comprehension: створення індексу книг за ID."""
+def create_book_index(
+    books: list[dict],
+) -> dict[int, dict]:
+    """Створення dict-індексу за ID книги."""
 
     return {
         book["id"]: book
@@ -23,7 +27,7 @@ def filter_by_author(
     books: list[dict],
     author: str,
 ) -> list[dict]:
-    """List comprehension: фільтрація книг за автором."""
+    """Фільтрація книг за автором."""
 
     return [
         book
@@ -34,21 +38,21 @@ def filter_by_author(
 
 def filter_by_year(
     books: list[dict],
-    min_year: int,
+    year: int,
 ) -> list[dict]:
-    """Фільтрація книг, виданих починаючи з певного року."""
+    """Фільтрація книг за роком видання."""
 
     return [
         book
         for book in books
-        if book["year"] >= min_year
+        if book["year"] >= year
     ]
 
 
 def group_books_by_author(
     books: list[dict],
 ) -> dict[str, list[dict]]:
-    """Групування книг за авторами через defaultdict."""
+    """Групування книг за авторами."""
 
     result = defaultdict(list)
 
@@ -61,7 +65,7 @@ def group_books_by_author(
 def count_books_by_author(
     books: list[dict],
 ) -> Counter:
-    """Counter для підрахунку кількості книг кожного автора."""
+    """Підрахунок кількості книг кожного автора."""
 
     return Counter(
         book["author"]

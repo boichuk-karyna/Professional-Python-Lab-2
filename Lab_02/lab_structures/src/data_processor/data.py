@@ -57,7 +57,8 @@ books = [
     },
 ]
 
-# Tuple — незмінна інформація про бібліотеку
+
+# Tuple: незмінні дані про бібліотеку
 library_metadata = (
     "Central City Library",
     "Lviv, Shevchenka Street 10",

@@ -12,10 +12,13 @@ def calculate_average_pages(
     if not books:
         return 0.0
 
-    return sum(
-        book["pages"]
-        for book in books
-    ) / len(books)
+    return (
+        sum(
+            book["pages"]
+            for book in books
+        )
+        / len(books)
+    )
 
 
 def find_book_by_title(
@@ -26,6 +29,19 @@ def find_book_by_title(
 
     for book in books:
         if book["title"].lower() == title.lower():
+            return book
+
+    return None
+
+
+def find_book_by_id(
+    books: list[dict],
+    book_id: int,
+) -> dict | None:
+    """Пошук книги за ID."""
+
+    for book in books:
+        if book["id"] == book_id:
             return book
 
     return None
@@ -61,7 +77,7 @@ def sort_books_by_year(
 def calculate_average_values(
     *values: float,
 ) -> float:
-    """Демонстрація використання *args."""
+    """Демонстрація *args."""
 
     if not values:
         return 0.0
@@ -72,22 +88,18 @@ def calculate_average_values(
 def create_record(
     **fields,
 ) -> dict:
-    """Демонстрація використання **kwargs."""
+    """Демонстрація **kwargs."""
 
     return dict(fields)
 
 
 def create_year_filter(
-    min_year: int,
+    minimum_year: int,
 ) -> Callable[[dict], bool]:
-    """
-    Closure.
-
-    Створює функцію, яка пам'ятає значення min_year.
-    """
+    """Closure для фільтрації книг за роком."""
 
     def predicate(book: dict) -> bool:
-        return book["year"] >= min_year
+        return book["year"] >= minimum_year
 
     return predicate
 
