@@ -2,13 +2,17 @@
 
 from functools import wraps
 from time import perf_counter
+from typing import Any, Callable
 
 
-def measure_time(func):
-    """Decorator for measuring function execution time."""
+def measure_time(func: Callable) -> Callable:
+    """Measure execution time of a function."""
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
         start = perf_counter()
 
         result = func(
@@ -19,9 +23,8 @@ def measure_time(func):
         elapsed = perf_counter() - start
 
         print(
-            f"[BENCHMARK] "
-            f"Функція '{func.__name__}' "
-            f"виконалась за {elapsed:.8f} с"
+            f"[TIMER] {func.__name__}: "
+            f"{elapsed:.8f} s"
         )
 
         return result

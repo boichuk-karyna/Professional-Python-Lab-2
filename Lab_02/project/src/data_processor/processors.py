@@ -1,149 +1,215 @@
-"""Processing functions for Variant 2 — Library Book Analysis."""
+"""Pure processing functions for student data."""
 
 from collections import Counter, defaultdict
 from collections.abc import Callable
 
 
-def get_unique_authors(
-    books: list[dict],
-) -> set[str]:
-    """Return unique authors using set comprehension."""
-
-    return {
-        book["author"]
-        for book in books
-    }
-
-
-def create_book_index(
-    books: list[dict],
-) -> dict[int, dict]:
-    """Create dictionary index by book ID."""
-
-    return {
-        book["id"]: book
-        for book in books
-    }
-
-
-def find_book_by_id(
-    books: list[dict],
-    book_id: int,
-) -> dict | None:
-    """Find a book by ID using linear search O(n)."""
-
-    for book in books:
-        if book["id"] == book_id:
-            return book
-
-    return None
-
-
-def find_book_by_title(
-    books: list[dict],
-    title: str,
-) -> dict | None:
-    """Find a book by title."""
-
-    wanted = title.strip().lower()
-
-    for book in books:
-        if book["title"].strip().lower() == wanted:
-            return book
-
-    return None
-
-
-def filter_by_year(
-    books: list[dict],
-    start_year: int,
-    end_year: int | None = None,
+def filter_by_min_scores(
+    students: list[dict],
+    minimum_scores: int,
 ) -> list[dict]:
-    """Filter books by publication year."""
+    """
+    Return students having enough scores.
 
-    if end_year is None:
-        return [
-            book
-            for book in books
-            if book["year"] == start_year
-        ]
+    Original data is not modified.
+    """
+    return [
+        student
+        for student in students
+        if len(student["scores"]) >= minimum_scores
+    ]
 
-    if start_year > end_year:
-        raise ValueError(
-            "start_year must not be greater than end_year"
+
+def calculate_average(
+    student: dict,
+) -> float:
+    """Calculate average score of one student."""
+
+    scores = student["scores"]
+
+    if not scores:
+        return 0.0
+
+    return sum(scores) / len(scores)
+
+
+def add_average(
+    student: dict,
+) -> dict:
+    """
+    Create a new student record with average.
+
+    Original dictionary is not mutated.
+    """
+    return {
+        **student,
+        "average": calculate_average(student),
+    }
+
+
+def transform_with_average(
+    students: list[dict],
+) -> list[dict]:
+    """Add average to every student using map."""
+
+    return list(
+        map(
+            add_average,
+            students,
         )
-
-    return [
-        book
-        for book in books
-        if start_year <= book["year"] <= end_year
-    ]
+    )
 
 
-def filter_by_author(
-    books: list[dict],
-    author: str,
+def add_group_bonus(
+    student: dict,
+    selected_group: str,
+    bonus: float,
+) -> dict:
+    """
+    Create a new record with group bonus.
+
+    Original data remains unchanged.
+    """
+    new_average = student["average"]
+
+    if student["group"] == selected_group:
+        new_average += bonus
+
+    return {
+        **student,
+        "average": new_average,
+    }
+
+
+def apply_group_bonus(
+    students: list[dict],
+    selected_group: str,
+    bonus: float,
 ) -> list[dict]:
-    """Filter books by author."""
-
-    wanted = author.strip().lower()
+    """Apply bonus to the selected group without mutation."""
 
     return [
-        book
-        for book in books
-        if book["author"].strip().lower() == wanted
+        add_group_bonus(
+            student,
+            selected_group,
+            bonus,
+        )
+        for student in students
     ]
+
+
+def sort_students(
+    students: list[dict],
+) -> list[dict]:
+    """
+    Sort students by two keys.
+
+    First: average descending.
+    Second: name ascending.
+    """
+    return sorted(
+        students,
+        key=lambda student: (
+            -student["average"],
+            student["name"],
+        ),
+    )
+
+
+def top_n_students(
+    students: list[dict],
+    n: int,
+) -> list[dict]:
+    """Return Top-N students."""
+
+    if n <= 0:
+        return []
+
+    return sort_students(students)[:n]
+
+
+def create_student_index(
+    students: list[dict],
+) -> dict[int, dict]:
+    """Create dictionary index by student ID."""
+
+    return {
+        student["id"]: student
+        for student in students
+    }
+
+
+def find_student_by_id(
+    students: list[dict],
+    student_id: int,
+) -> dict | None:
+    """Linear search by ID."""
+
+    for student in students:
+        if student["id"] == student_id:
+            return student
+
+    return None
+
+
+def group_students(
+    students: list[dict],
+) -> dict[str, list[dict]]:
+    """Group students by group."""
+
+    grouped = defaultdict(list)
+
+    for student in students:
+        grouped[student["group"]].append(student)
+
+    return dict(grouped)
+
+
+def get_unique_groups(
+    students: list[dict],
+) -> set[str]:
+    """Return unique groups using set comprehension."""
+
+    return {
+        student["group"]
+        for student in students
+    }
+
+
+def count_by_group(
+    students: list[dict],
+) -> Counter:
+    """Count students in every group."""
+
+    return Counter(
+        student["group"]
+        for student in students
+    )
 
 
 def filter_items(
-    books: list[dict],
+    items: list[dict],
     predicate: Callable[[dict], bool],
 ) -> list[dict]:
     """Universal higher-order filtering function."""
 
-    return [
-        book
-        for book in books
-        if predicate(book)
-    ]
-
-
-def group_books_by_author(
-    books: list[dict],
-) -> dict[str, list[dict]]:
-    """Group books by author using defaultdict."""
-
-    result = defaultdict(list)
-
-    for book in books:
-        result[book["author"]].append(book)
-
-    return dict(result)
-
-
-def count_books_by_author(
-    books: list[dict],
-) -> Counter:
-    """Count books by author using Counter."""
-
-    return Counter(
-        book["author"]
-        for book in books
+    return list(
+        filter(
+            predicate,
+            items,
+        )
     )
 
 
-def sort_books(
-    books: list[dict],
-    key: Callable[[dict], object] | None = None,
-    reverse: bool = False,
+def map_items(
+    items: list[dict],
+    transform: Callable[[dict], dict],
 ) -> list[dict]:
-    """Universal sorting function."""
+    """Universal higher-order mapping function."""
 
-    if key is None:
-        key = lambda book: book["year"]
-
-    return sorted(
-        books,
-        key=key,
-        reverse=reverse,
+    return list(
+        map(
+            transform,
+            items,
+        )
     )

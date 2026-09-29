@@ -1,270 +1,366 @@
-"""Main program for Variant 2 — Library Book Analysis."""
+"""Main program for Lab_02, Variant 2."""
+
+from functools import reduce
+from time import perf_counter
 
 from data_processor.analytics import (
-    aggregate_books,
-    calculate_average_pages,
+    aggregate_students,
     calculate_average_values,
+    calculate_overall_average,
+    compose,
+    create_average_filter,
     create_record,
-    create_year_filter,
-    find_largest_book,
 )
-from data_processor.benchmark import run_benchmark
-from data_processor.data import books
+
+from data_processor.data import (
+    ANALYSIS_CONFIG,
+    students,
+)
+
 from data_processor.processors import (
-    count_books_by_author,
-    create_book_index,
-    filter_by_year,
-    get_unique_authors,
-    group_books_by_author,
-    find_book_by_id,
-    find_book_by_title,
-    sort_books,
+    apply_group_bonus,
+    count_by_group,
+    create_student_index,
+    filter_by_min_scores,
+    filter_items,
+    find_student_by_id,
+    get_unique_groups,
+    group_students,
+    sort_students,
+    top_n_students,
+    transform_with_average,
 )
 
 
-def print_books(
+def print_students(
     title: str,
     items: list[dict],
 ) -> None:
-    """Print books in a formatted table."""
+    """Print students in table form."""
 
     print(f"\n{title}")
-    print("-" * 100)
+    print("-" * 80)
 
     print(
         f"{'ID':<5}"
-        f"{'Назва':<45}"
-        f"{'Автор':<25}"
-        f"{'Рік':<8}"
-        f"{'Сторінки':<10}"
+        f"{'Name':<25}"
+        f"{'Group':<10}"
+        f"{'Scores':<25}"
+        f"{'Average':<10}"
     )
 
-    print("-" * 100)
+    print("-" * 80)
 
-    for book in items:
+    for student in items:
+        scores = ", ".join(
+            str(score)
+            for score in student["scores"]
+        )
+
         print(
-            f"{book['id']:<5}"
-            f"{book['title'][:42]:<45}"
-            f"{book['author'][:22]:<25}"
-            f"{book['year']:<8}"
-            f"{book['pages']:<10}"
+            f"{student['id']:<5}"
+            f"{student['name']:<25}"
+            f"{student['group']:<10}"
+            f"{scores:<25}"
+            f"{student['average']:<10.2f}"
+        )
+
+
+def run_benchmark() -> None:
+    """Compare linear list search with dictionary search."""
+
+    print("\n=== BENCHMARK ===")
+    print("-" * 80)
+
+    print(
+        f"{'Records':<15}"
+        f"{'List search':<20}"
+        f"{'Dict search':<20}"
+    )
+
+    for size in (
+        1_000,
+        10_000,
+        100_000,
+    ):
+        test_data = [
+            {
+                "id": i,
+                "name": f"Student {i}",
+                "group": f"PI-{i % 10}",
+                "scores": [70, 80, 90],
+                "average": 80.0,
+            }
+            for i in range(size)
+        ]
+
+        target_id = size - 1
+
+        start = perf_counter()
+
+        for student in test_data:
+            if student["id"] == target_id:
+                break
+
+        list_time = (
+            perf_counter()
+            - start
+        )
+
+        index = {
+            student["id"]: student
+            for student in test_data
+        }
+
+        start = perf_counter()
+
+        index.get(target_id)
+
+        dict_time = (
+            perf_counter()
+            - start
+        )
+
+        print(
+            f"{size:<15}"
+            f"{list_time:<20.8f}"
+            f"{dict_time:<20.8f}"
         )
 
 
 def main() -> None:
-    print(
-        "=== АНАЛІЗ СИСТЕМИ ОБЛІКУ КНИГ "
-        "(ВАРІАНТ 2) ==="
-    )
+    """Run the complete student analysis."""
 
-    # 1. Виведення всіх книг.
-    print_books(
-        "Усі книги",
-        books,
-    )
-
-    # 2. Унікальні автори — set comprehension.
-    authors = get_unique_authors(books)
-
-    print(
-        "\nУнікальні автори (Set):"
-    )
-
-    for author in sorted(authors):
-        print(f"  - {author}")
-
-    # 3. Середня кількість сторінок.
-    average_pages = calculate_average_pages(
-        books
+    minimum_scores, top_n, bonus_group, bonus = (
+        ANALYSIS_CONFIG
     )
 
     print(
-        f"\nСередня кількість сторінок: "
-        f"{average_pages:.2f}"
-    )
-
-    # 4. Найбільша книга.
-    largest = find_largest_book(books)
-
-    if largest:
-        print(
-            "\nНайбільша книга:"
-        )
-        print(
-            f"  {largest['title']} — "
-            f"{largest['pages']} сторінок"
-        )
-
-    # 5. Пошук книги за ID.
-    search_id = 5
-
-    found_by_id = find_book_by_id(
-        books,
-        search_id,
-    )
-
-    print(
-        f"\nПошук книги за ID {search_id}:"
-    )
-    print(found_by_id)
-
-    # 6. Пошук книги за назвою.
-    search_title = "1984"
-
-    found_by_title = find_book_by_title(
-        books,
-        search_title,
-    )
-
-    print(
-        f"\nПошук книги за назвою "
-        f"'{search_title}':"
-    )
-    print(found_by_title)
-
-    # 7. Фільтрація за роком.
-    filtered_books = filter_by_year(
-        books,
-        1900,
-        2000,
-    )
-
-    print_books(
-        "Книги, видані з 1900 по 2000 рік",
-        filtered_books,
-    )
-
-    # 8. Сортування за роком.
-    sorted_books = sort_books(
-        books,
-        key=lambda book: book["year"],
-    )
-
-    print_books(
-        "Книги, відсортовані за роком",
-        sorted_books,
-    )
-
-    # 9. Групування за авторами.
-    grouped = group_books_by_author(
-        books
-    )
-
-    print(
-        "\nГрупування книг за авторами:"
-    )
-
-    for author, author_books in grouped.items():
-        print(
-            f"  - {author}: "
-            f"{len(author_books)} книга(и)"
-        )
-
-    # 10. Counter.
-    author_counter = count_books_by_author(
-        books
-    )
-
-    print(
-        "\nCounter книг за авторами:"
-    )
-
-    for author, count in author_counter.items():
-        print(
-            f"  - {author}: {count}"
-        )
-
-    # 11. Dict index.
-    index = create_book_index(books)
-
-    print(
-        "\nDict-index за ID:"
+        "=== LAB_02 — ВАРІАНТ 2 ==="
     )
     print(
-        f"Ключ 5 -> {index.get(5)}"
+        "Аналіз системи оцінювання студентів"
     )
 
-    # 12. Closure.
-    is_recent_book = create_year_filter(
-        1950
-    )
-
-    recent_books = [
-        book
-        for book in books
-        if is_recent_book(book)
+    # Перевірка відсутності мутації.
+    original_students = [
+        {
+            **student,
+            "scores": list(student["scores"]),
+        }
+        for student in students
     ]
 
-    print_books(
-        "Книги після 1950 року "
-        "(Closure)",
-        recent_books,
+    # 1. Фільтрація за кількістю оцінок.
+    filtered = filter_by_min_scores(
+        students,
+        minimum_scores,
     )
 
-    # 13. *args.
+    # 2. Додавання середнього бала.
+    with_average = transform_with_average(
+        filtered
+    )
+
+    print_students(
+        "Студенти з достатньою кількістю оцінок",
+        with_average,
+    )
+
+    # 3. Closure для фільтрації.
+    excellent_filter = create_average_filter(
+        90
+    )
+
+    excellent = filter_items(
+        with_average,
+        excellent_filter,
+    )
+
+    print_students(
+        "Студенти із середнім балом >= 90",
+        excellent,
+    )
+
+    # 4. Додавання бонусу вибраній групі.
+    with_bonus = apply_group_bonus(
+        with_average,
+        bonus_group,
+        bonus,
+    )
+
+    print_students(
+        f"Після бонусу +{bonus} "
+        f"для групи {bonus_group}",
+        with_bonus,
+    )
+
+    # 5. Сортування за двома ключами.
+    ranking = sort_students(
+        with_bonus
+    )
+
+    print_students(
+        "Повний рейтинг",
+        ranking,
+    )
+
+    # 6. Top-N.
+    top_students = top_n_students(
+        with_bonus,
+        top_n,
+    )
+
+    print_students(
+        f"Top-{top_n}",
+        top_students,
+    )
+
+    # 7. Унікальні групи.
+    groups = get_unique_groups(
+        with_bonus
+    )
+
+    print(
+        "\nУнікальні групи:",
+        groups,
+    )
+
+    # 8. Групування.
+    grouped = group_students(
+        with_bonus
+    )
+
+    print("\nГрупування:")
+
+    for group, members in grouped.items():
+        print(
+            f"{group}: "
+            f"{len(members)} студентів"
+        )
+
+    # 9. Counter.
+    group_counter = count_by_group(
+        with_bonus
+    )
+
+    print(
+        "\nCounter груп:",
+        dict(group_counter),
+    )
+
+    # 10. Dict index.
+    index = create_student_index(
+        with_bonus
+    )
+
+    print(
+        "\nDict-index, ID=3:",
+        index.get(3),
+    )
+
+    # 11. Linear search.
+    found = find_student_by_id(
+        with_bonus,
+        3,
+    )
+
+    print(
+        "\nПошук студента ID=3:",
+        found,
+    )
+
+    # 12. Reduce aggregation.
+    statistics = aggregate_students(
+        with_bonus
+    )
+
+    print("\n=== AGGREGATION ===")
+    print(
+        "count:",
+        statistics["count"],
+    )
+    print(
+        "sum_avg:",
+        f"{statistics['sum_avg']:.2f}",
+    )
+    print(
+        "group_avg:",
+        {
+            group: round(value, 2)
+            for group, value
+            in statistics["group_avg"].items()
+        },
+    )
+
+    # 13. Загальний середній бал.
+    overall = calculate_overall_average(
+        with_bonus
+    )
+
+    print(
+        "\nЗагальний середній бал:",
+        f"{overall:.2f}",
+    )
+
+    # 14. *args.
     demo_average = calculate_average_values(
-        200,
-        300,
-        400,
-        500,
+        80,
+        85,
+        90,
+        95,
     )
 
     print(
-        "\nСереднє через *args:"
-    )
-    print(
-        f"  {demo_average:.2f}"
+        "\nAverage через *args:",
+        demo_average,
     )
 
-    # 14. **kwargs.
-    new_book = create_record(
-        id=11,
-        title="Python Programming",
-        author="John Smith",
-        year=2024,
-        pages=500,
+    # 15. **kwargs.
+    new_student = create_record(
+        id=99,
+        name="Test Student",
+        group="PI-99",
+        scores=[90, 90, 90],
     )
 
     print(
-        "\nСтворений запис через **kwargs:"
-    )
-    print(new_book)
-
-    # 15. Агрегація.
-    summary = aggregate_books(
-        books
+        "\nЗапис через **kwargs:",
+        new_student,
     )
 
-    print(
-        "\nСтатистика бібліотеки:"
+    # 16. Composition / pipeline.
+    pipeline = compose(
+        lambda data: filter_by_min_scores(
+            data,
+            3,
+        ),
+        transform_with_average,
+        lambda data: apply_group_bonus(
+            data,
+            bonus_group,
+            bonus,
+        ),
+        sort_students,
     )
 
-    print(
-        f"  Кількість книг: "
-        f"{summary['count']}"
+    pipeline_result = pipeline(
+        students
     )
 
-    print(
-        f"  Загальна кількість сторінок: "
-        f"{summary['total_pages']}"
+    print_students(
+        "Результат function composition",
+        pipeline_result,
     )
 
-    print(
-        f"  Середня кількість сторінок: "
-        f"{summary['average_pages']:.2f}"
-    )
-
-    print(
-        f"  Найстарший рік: "
-        f"{summary['min_year']}"
-    )
+    # 17. Перевірка, що початкові дані не змінилися.
+    assert students == original_students
 
     print(
-        f"  Найновіший рік: "
-        f"{summary['max_year']}"
+        "\nПеревірка immutability: PASSED"
     )
 
-    # 16. Benchmark.
+    # 18. Benchmark.
     run_benchmark()
 
 

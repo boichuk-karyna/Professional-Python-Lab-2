@@ -1,50 +1,105 @@
-"""Analytical functions for Variant 2 — Library Book Analysis."""
+"""Analytical functions for Lab_02."""
 
-from collections.abc import Callable
+from functools import reduce
 
 from data_processor.decorators import measure_time
 
 
 @measure_time
-def calculate_average_pages(
-    books: list[dict],
-) -> float:
-    """Calculate average number of pages."""
+def aggregate_students(
+    students: list[dict],
+) -> dict:
+    """
+    Aggregate student statistics using reduce.
 
-    if not books:
+    Returns:
+        count
+        sum_avg
+        group_avg
+    """
+
+    initial = {
+        "count": 0,
+        "sum_avg": 0.0,
+        "group_totals": {},
+    }
+
+    def reducer(
+        accumulator: dict,
+        student: dict,
+    ) -> dict:
+        group = student["group"]
+        average = student["average"]
+
+        new_group_totals = {
+            **accumulator["group_totals"],
+        }
+
+        current = new_group_totals.get(
+            group,
+            [0, 0.0],
+        )
+
+        new_group_totals[group] = [
+            current[0] + 1,
+            current[1] + average,
+        ]
+
+        return {
+            "count": accumulator["count"] + 1,
+            "sum_avg": accumulator["sum_avg"] + average,
+            "group_totals": new_group_totals,
+        }
+
+    result = reduce(
+        reducer,
+        students,
+        initial,
+    )
+
+    group_avg = {
+        group: total / count
+        for group, (count, total)
+        in result["group_totals"].items()
+    }
+
+    return {
+        "count": result["count"],
+        "sum_avg": result["sum_avg"],
+        "group_avg": group_avg,
+    }
+
+
+def calculate_overall_average(
+    students: list[dict],
+) -> float:
+    """Calculate overall average."""
+
+    if not students:
         return 0.0
 
     return sum(
-        book["pages"]
-        for book in books
-    ) / len(books)
+        student["average"]
+        for student in students
+    ) / len(students)
 
 
-def find_largest_book(
-    books: list[dict],
-) -> dict | None:
-    """Find the book with the largest number of pages."""
+def create_average_filter(
+    minimum_average: float,
+):
+    """
+    Create closure for average filtering.
 
-    if not books:
-        return None
+    The returned function remembers minimum_average.
+    """
 
-    return max(
-        books,
-        key=lambda book: book["pages"],
-    )
+    def predicate(student: dict) -> bool:
+        return (
+            student["average"]
+            >= minimum_average
+        )
 
-
-def sort_by_year(
-    books: list[dict],
-    reverse: bool = False,
-) -> list[dict]:
-    """Sort books by publication year."""
-
-    return sorted(
-        books,
-        key=lambda book: book["year"],
-        reverse=reverse,
-    )
+    return predicate
 
 
 def calculate_average_values(
@@ -61,96 +116,26 @@ def calculate_average_values(
 def create_record(
     **fields,
 ) -> dict:
-    """Create a dictionary using **kwargs."""
+    """Create dictionary using **kwargs."""
 
     return dict(fields)
 
 
-def create_year_filter(
-    minimum_year: int,
-    maximum_year: int | None = None,
-) -> Callable[[dict], bool]:
+def compose(
+    *functions,
+):
     """
-    Create a closure for filtering books
-    by publication year.
+    Compose functions from left to right.
+
+    This is a higher-order function.
     """
 
-    def predicate(book: dict) -> bool:
-        if maximum_year is None:
-            return book["year"] >= minimum_year
+    def pipeline(value):
+        result = value
 
-        return (
-            minimum_year
-            <= book["year"]
-            <= maximum_year
-        )
+        for function in functions:
+            result = function(result)
 
-    return predicate
+        return result
 
-
-def create_page_filter(
-    minimum_pages: int,
-) -> Callable[[dict], bool]:
-    """Create a closure for filtering by pages."""
-
-    def predicate(book: dict) -> bool:
-        return book["pages"] >= minimum_pages
-
-    return predicate
-
-
-def aggregate_books(
-    books: list[dict],
-) -> dict:
-    """Calculate aggregate statistics."""
-
-    if not books:
-        return {
-            "count": 0,
-            "total_pages": 0,
-            "average_pages": 0.0,
-            "min_year": None,
-            "max_year": None,
-        }
-
-    total_pages = sum(
-        book["pages"]
-        for book in books
-    )
-
-    return {
-        "count": len(books),
-        "total_pages": total_pages,
-        "average_pages": total_pages / len(books),
-        "min_year": min(
-            book["year"]
-            for book in books
-        ),
-        "max_year": max(
-            book["year"]
-            for book in books
-        ),
-    }
-
-
-def build_summary(
-    books: list[dict],
-    **options,
-) -> dict:
-    """Build summary using keyword options."""
-
-    summary = aggregate_books(books)
-
-    if options.get("include_authors", False):
-        summary["authors"] = {
-            book["author"]
-            for book in books
-        }
-
-    if options.get("include_years", False):
-        summary["years"] = {
-            book["year"]
-            for book in books
-        }
-
-    return summary
+    return pipeline
