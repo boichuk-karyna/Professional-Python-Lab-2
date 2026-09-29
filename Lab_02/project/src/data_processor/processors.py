@@ -1,36 +1,29 @@
+"""Processing functions for Variant 2 — Library Book Analysis."""
+
 from collections import Counter, defaultdict
 from collections.abc import Callable
 
 
-def get_unique_authors(
-    books: list[dict],
-) -> set[str]:
-    """Return a set of unique authors."""
-
+def get_unique_authors(books: list[dict]) -> set[str]:
+    """Return unique authors using a set comprehension."""
     return {
         book["author"]
         for book in books
     }
 
 
-def create_book_index(
-    books: list[dict],
-) -> dict[int, dict]:
-    """Create O(1)-average lookup index by book ID."""
-
+def create_book_index(books: list[dict]) -> dict[int, dict]:
+    """Create dictionary index by book ID."""
     return {
         book["id"]: book
         for book in books
     }
 
 
-def create_title_index(
-    books: list[dict],
-) -> dict[str, dict]:
-    """Create lookup index by title."""
-
+def create_title_index(books: list[dict]) -> dict[str, dict]:
+    """Create dictionary index by normalized title."""
     return {
-        book["title"].lower(): book
+        book["title"].strip().lower(): book
         for book in books
     }
 
@@ -39,8 +32,7 @@ def find_book_by_id(
     books: list[dict],
     book_id: int,
 ) -> dict | None:
-    """Linear search for a book by ID."""
-
+    """Search a book by ID. Complexity: O(n)."""
     for book in books:
         if book["id"] == book_id:
             return book
@@ -52,23 +44,48 @@ def find_book_by_title(
     books: list[dict],
     title: str,
 ) -> dict | None:
-    """Linear search for a book by title."""
-
-    normalized_title = title.strip().lower()
+    """Search a book by title."""
+    wanted = title.strip().lower()
 
     for book in books:
-        if book["title"].lower() == normalized_title:
+        if book["title"].strip().lower() == wanted:
             return book
 
     return None
 
 
+def filter_by_author(
+    books: list[dict],
+    author: str,
+) -> list[dict]:
+    """Filter books by author."""
+    wanted = author.strip().lower()
+
+    return [
+        book
+        for book in books
+        if book["author"].strip().lower() == wanted
+    ]
+
+
 def filter_by_year(
     books: list[dict],
     start_year: int,
-    end_year: int,
+    end_year: int | None = None,
 ) -> list[dict]:
-    """Filter books by publication year."""
+    """Filter books by one year or by an inclusive year interval."""
+
+    if end_year is None:
+        return [
+            book
+            for book in books
+            if book["year"] == start_year
+        ]
+
+    if start_year > end_year:
+        raise ValueError(
+            "start_year must not be greater than end_year"
+        )
 
     return [
         book
@@ -81,8 +98,7 @@ def filter_items(
     items: list[dict],
     predicate: Callable[[dict], bool],
 ) -> list[dict]:
-    """Generic higher-order filtering function."""
-
+    """Universal higher-order filtering function."""
     return [
         item
         for item in items
@@ -94,7 +110,6 @@ def group_books_by_author(
     books: list[dict],
 ) -> dict[str, list[dict]]:
     """Group books by author using defaultdict."""
-
     grouped = defaultdict(list)
 
     for book in books:
@@ -106,8 +121,7 @@ def group_books_by_author(
 def count_books_by_author(
     books: list[dict],
 ) -> Counter:
-    """Count books written by each author."""
-
+    """Count books by author using Counter."""
     return Counter(
         book["author"]
         for book in books
@@ -116,10 +130,13 @@ def count_books_by_author(
 
 def sort_books(
     books: list[dict],
-    key: Callable[[dict], object],
+    key: Callable[[dict], object] | None = None,
     reverse: bool = False,
 ) -> list[dict]:
     """Universal sorting function."""
+
+    if key is None:
+        key = lambda book: book["year"]
 
     return sorted(
         books,

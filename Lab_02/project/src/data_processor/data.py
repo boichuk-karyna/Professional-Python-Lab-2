@@ -1,3 +1,5 @@
+"""Data for Variant 2 — Library Book Analysis."""
+
 books = [
     {
         "id": 1,
@@ -71,6 +73,5 @@ books = [
     },
 ]
 
-
-# Tuple: незмінюваний набір параметрів benchmark.
+# Tuple — immutable benchmark configuration.
 BENCHMARK_SIZES = (1_000, 10_000, 100_000)

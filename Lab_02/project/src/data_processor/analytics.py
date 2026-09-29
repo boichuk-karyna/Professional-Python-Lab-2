@@ -1,3 +1,5 @@
+"""Analytical functions for Variant 2 — Library Book Analysis."""
+
 from collections import deque
 from collections.abc import Callable
 
@@ -69,9 +71,7 @@ def create_year_filter(
     minimum_year: int,
     maximum_year: int | None = None,
 ) -> Callable[[dict], bool]:
-    """
-    Create a closure that remembers year boundaries.
-    """
+    """Create a closure for filtering by publication year."""
 
     def predicate(book: dict) -> bool:
         if maximum_year is None:
@@ -89,7 +89,7 @@ def create_year_filter(
 def create_page_filter(
     minimum_pages: int,
 ) -> Callable[[dict], bool]:
-    """Create a closure for filtering books by page count."""
+    """Create a closure for filtering by minimum pages."""
 
     def predicate(book: dict) -> bool:
         return book["pages"] >= minimum_pages
@@ -97,34 +97,72 @@ def create_page_filter(
     return predicate
 
 
+def aggregate_books(
+    books: list[dict],
+) -> dict:
+    """Calculate aggregate statistics."""
+
+    total_pages = sum(
+        book["pages"]
+        for book in books
+    )
+
+    return {
+        "count": len(books),
+        "total_pages": total_pages,
+        "average_pages": (
+            total_pages / len(books)
+            if books
+            else 0.0
+        ),
+        "min_year": min(
+            (book["year"] for book in books),
+            default=None,
+        ),
+        "max_year": max(
+            (book["year"] for book in books),
+            default=None,
+        ),
+    }
+
+
 def build_summary(
     books: list[dict],
     **options,
 ) -> dict:
-    """Build summary using keyword configuration."""
+    """Build summary using keyword options."""
 
-    result = {
-        "total_books": len(books),
-        "total_pages": sum(
-            book["pages"]
-            for book in books
-        ),
-        "average_pages": calculate_average_pages(books),
-    }
+    summary = aggregate_books(books)
 
     if options.get("include_authors", False):
-        result["authors"] = {
+        summary["authors"] = {
             book["author"]
             for book in books
         }
 
     if options.get("include_years", False):
-        result["years"] = {
+        summary["years"] = {
             book["year"]
             for book in books
         }
 
-    return result
+    return summary
+
+
+def process_books(
+    books: list[dict],
+    predicate: Callable[[dict], bool] | None = None,
+) -> list[dict]:
+    """Process books using an optional predicate."""
+
+    if predicate is None:
+        return list(books)
+
+    return [
+        book
+        for book in books
+        if predicate(book)
+    ]
 
 
 class OperationHistory:
