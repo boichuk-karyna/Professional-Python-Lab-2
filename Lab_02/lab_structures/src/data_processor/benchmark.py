@@ -5,7 +5,7 @@ def find_linear(
     books: list[dict],
     book_id: int,
 ) -> dict | None:
-    """O(n) search in list."""
+    """Linear O(n) search."""
 
     for book in books:
         if book["id"] == book_id:
@@ -16,11 +16,10 @@ def find_linear(
 
 def benchmark(
     size: int,
+    repetitions: int = 1000,
 ) -> tuple[float, float, float]:
     """
     Compare list, dict and set lookup.
-
-    Returns a tuple with three execution times.
     """
 
     books = [
@@ -47,15 +46,27 @@ def benchmark(
     book_id = size - 1
 
     start = perf_counter()
-    find_linear(books, book_id)
+
+    for _ in range(repetitions):
+        find_linear(
+            books,
+            book_id,
+        )
+
     list_time = perf_counter() - start
 
     start = perf_counter()
-    index.get(book_id)
+
+    for _ in range(repetitions):
+        index.get(book_id)
+
     dict_time = perf_counter() - start
 
     start = perf_counter()
-    book_id in ids
+
+    for _ in range(repetitions):
+        book_id in ids
+
     set_time = perf_counter() - start
 
     return (
@@ -66,7 +77,7 @@ def benchmark(
 
 
 def run_benchmark() -> None:
-    """Run benchmark for required data sizes."""
+    """Run benchmark."""
 
     sizes = (
         1000,
@@ -85,7 +96,12 @@ def run_benchmark() -> None:
     )
 
     for size in sizes:
-        list_time, dict_time, set_time = benchmark(size)
+
+        (
+            list_time,
+            dict_time,
+            set_time,
+        ) = benchmark(size)
 
         print(
             f"{size:<15}"

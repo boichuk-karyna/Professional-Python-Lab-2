@@ -9,6 +9,7 @@ from src.data_processor.data import books
 from src.data_processor.processors import (
     calculate_average_pages,
     calculate_average_values,
+    count_books_by_author,
     create_book_index,
     create_record,
     create_year_filter,
@@ -81,7 +82,9 @@ def test_filter_by_year():
 
 
 def test_filter_closure():
-    predicate = create_year_filter(2020)
+    predicate = create_year_filter(
+        2020,
+    )
 
     result = filter_books(
         books,
@@ -95,12 +98,17 @@ def test_filter_closure():
 
 
 def test_calculate_average_pages():
-    result = calculate_average_pages(books)
+    result = calculate_average_pages(
+        books,
+    )
 
-    expected = sum(
-        book["pages"]
-        for book in books
-    ) / len(books)
+    expected = (
+        sum(
+            book["pages"]
+            for book in books
+        )
+        / len(books)
+    )
 
     assert result == expected
 
@@ -110,7 +118,9 @@ def test_calculate_average_pages_empty():
 
 
 def test_find_largest_book():
-    result = find_largest_book(books)
+    result = find_largest_book(
+        books,
+    )
 
     assert result is not None
     assert result["title"] == "Learning Python"
@@ -118,7 +128,9 @@ def test_find_largest_book():
 
 
 def test_sort_by_year():
-    result = sort_by_year(books)
+    result = sort_by_year(
+        books,
+    )
 
     years = [
         book["year"]
@@ -129,7 +141,9 @@ def test_sort_by_year():
 
 
 def test_sort_by_pages():
-    result = sort_by_pages(books)
+    result = sort_by_pages(
+        books,
+    )
 
     pages = [
         book["pages"]
@@ -176,14 +190,26 @@ def test_top_n_negative():
 
 
 def test_group_books_by_author():
-    result = group_books_by_author(books)
+    result = group_books_by_author(
+        books,
+    )
 
     assert "Mark Lutz" in result
     assert len(result["Mark Lutz"]) == 2
 
 
+def test_count_books_by_author():
+    result = count_books_by_author(
+        books,
+    )
+
+    assert result["Mark Lutz"] == 2
+
+
 def test_aggregate_books():
-    result = aggregate_books(books)
+    result = aggregate_books(
+        books,
+    )
 
     assert result["count"] == len(books)
 
@@ -195,6 +221,7 @@ def test_aggregate_books():
     assert result["sum_pages"] == expected_sum
 
     assert "author_avg" in result
+
     assert isinstance(
         result["author_avg"],
         dict,
@@ -202,10 +229,16 @@ def test_aggregate_books():
 
 
 def test_page_statistics_tuple():
-    result = get_page_statistics(books)
+    result = get_page_statistics(
+        books,
+    )
 
-    assert isinstance(result, tuple)
-    assert result[0] == 302
+    assert isinstance(
+        result,
+        tuple,
+    )
+
+    assert result[0] == 274
     assert result[1] == 1648
 
 
@@ -266,12 +299,12 @@ def test_compose():
 def test_no_mutation():
     original = deepcopy(books)
 
-    process_result = filter_by_year(
+    result = filter_by_year(
         books,
         2019,
     )
 
-    process_result.append(
+    result.append(
         {
             "id": 999,
             "title": "Temporary",

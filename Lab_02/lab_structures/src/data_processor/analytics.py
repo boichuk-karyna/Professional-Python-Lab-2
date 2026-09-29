@@ -24,11 +24,6 @@ def aggregate_books(
 ) -> dict:
     """
     Aggregate book statistics using reduce.
-
-    Returns:
-        count
-        sum_pages
-        author_avg
     """
 
     initial = {
@@ -42,6 +37,7 @@ def aggregate_books(
         accumulator: dict,
         book: dict,
     ) -> dict:
+
         author = book["author"]
         pages = book["pages"]
 
@@ -49,12 +45,18 @@ def aggregate_books(
         accumulator["sum_pages"] += pages
 
         accumulator["author_sum"][author] = (
-            accumulator["author_sum"].get(author, 0)
+            accumulator["author_sum"].get(
+                author,
+                0,
+            )
             + pages
         )
 
         accumulator["author_count"][author] = (
-            accumulator["author_count"].get(author, 0)
+            accumulator["author_count"].get(
+                author,
+                0,
+            )
             + 1
         )
 
@@ -86,12 +88,6 @@ def compose(
 ) -> Callable:
     """
     Compose functions from left to right.
-
-    Example:
-        pipeline = compose(
-            filter_function,
-            sort_function,
-        )
     """
 
     def pipeline(value):
@@ -109,14 +105,15 @@ def build_processing_pipeline(
     minimum_year: int,
 ) -> Callable:
     """
-    Create a reusable processing pipeline.
+    Build reusable pipeline.
 
-    Closure stores minimum_year.
+    Closure remembers minimum_year.
     """
 
     def filter_by_year(
         books: list[dict],
     ) -> list[dict]:
+
         return [
             book.copy()
             for book in books
@@ -126,6 +123,7 @@ def build_processing_pipeline(
     def sort_books(
         books: list[dict],
     ) -> list[dict]:
+
         return sorted(
             books,
             key=lambda book: (
@@ -145,11 +143,7 @@ def get_top_n(
     n: int,
 ) -> list[dict]:
     """
-    Return Top-N books by pages.
-
-    Tie-breaking:
-    1. pages descending
-    2. title ascending
+    Return top N books by pages.
     """
 
     if n <= 0:
@@ -172,7 +166,7 @@ def get_top_n(
 def calculate_summary(
     books: list[dict],
 ) -> dict:
-    """Build a complete summary."""
+    """Build complete summary."""
 
     aggregation = aggregate_books(books)
 

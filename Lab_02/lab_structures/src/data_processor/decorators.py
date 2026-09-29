@@ -30,6 +30,7 @@ def repeat(count: int):
         raise ValueError("count must be >= 1")
 
     def decorator(func):
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             result = None

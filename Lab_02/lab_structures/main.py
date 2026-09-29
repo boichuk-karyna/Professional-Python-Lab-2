@@ -1,11 +1,20 @@
 from src.data_processor.analytics import (
     aggregate_books,
+    build_processing_pipeline,
     calculate_average_pages,
-    compose,
+    calculate_summary,
     get_top_n,
 )
-from src.data_processor.benchmark import run_benchmark
+from src.data_processor.benchmark import (
+    run_benchmark,
+)
 from src.data_processor.data import books
+from src.data_processor.decorators import (
+    repeat,
+)
+from src.data_processor.export import (
+    export_summary,
+)
 from src.data_processor.processors import (
     calculate_average_values,
     count_books_by_author,
@@ -14,7 +23,6 @@ from src.data_processor.processors import (
     create_title_index,
     create_year_filter,
     filter_books,
-    filter_by_year,
     find_book_by_id,
     find_book_by_title,
     find_book_in_index,
@@ -31,61 +39,96 @@ def print_books(
     title: str,
     items: list[dict],
 ) -> None:
+    """Print books."""
+
     print(f"\n{title}")
     print("-" * 80)
 
     for book in items:
         print(
-            f"{book['id']:3} "
-            f"{book['title'][:30]:30} "
-            f"{book['author'][:20]:20} "
-            f"{book['year']:4} "
-            f"{book['pages']:5}"
+            f"{book['id']:2} | "
+            f"{book['title']:<30} | "
+            f"{book['author']:<20} | "
+            f"{book['year']} | "
+            f"{book['pages']} pages"
         )
 
 
+@repeat(1)
+def show_message() -> None:
+    """Demonstrate parameterized decorator."""
+
+    print("\nLab_02 - Variant 2")
+
+
 def main() -> None:
+
+    show_message()
+
     print_books(
         "All books",
         books,
     )
 
     authors = get_unique_authors(books)
-    print("\nUnique authors:")
-    print(authors)
 
-    average = calculate_average_pages(books)
     print(
-        f"\nAverage pages: {average:.2f}"
+        "\nUnique authors:",
+        authors,
     )
 
-    largest = find_largest_book(books)
+    index = create_book_index(books)
 
-    if largest:
-        print(
-            "\nLargest book:",
-            largest["title"],
-            largest["pages"],
-        )
+    title_index = create_title_index(books)
 
-    sorted_books = sort_by_year(books)
-
-    print_books(
-        "Sorted by year",
-        sorted_books,
+    print(
+        "\nBook index:",
+        index,
     )
 
-    recent_books = filter_by_year(
+    found_by_id = find_book_by_id(
         books,
-        2019,
+        4,
+    )
+
+    print(
+        "\nSearch by ID:",
+        found_by_id,
+    )
+
+    found_by_title = find_book_by_title(
+        books,
+        "Clean Code",
+    )
+
+    print(
+        "\nSearch by title:",
+        found_by_title,
+    )
+
+    found_in_index = find_book_in_index(
+        index,
+        5,
+    )
+
+    print(
+        "\nDictionary search:",
+        found_in_index,
+    )
+
+    filtered = filter_books(
+        books,
+        create_year_filter(2019),
     )
 
     print_books(
-        "Books from 2019+",
-        recent_books,
+        "Books from 2019",
+        filtered,
     )
 
-    grouped = group_books_by_author(books)
+    grouped = group_books_by_author(
+        books,
+    )
 
     print("\nBooks grouped by author:")
 
@@ -96,36 +139,82 @@ def main() -> None:
             len(author_books),
         )
 
-    counter = count_books_by_author(books)
-
-    print("\nCounter:")
-    print(counter)
-
-    index = create_book_index(books)
-
-    print(
-        "\nSearch by ID:",
-        find_book_in_index(index, 4),
+    counter = count_books_by_author(
+        books,
     )
 
     print(
-        "\nLinear search:",
-        find_book_by_id(books, 2),
+        "\nCounter:",
+        counter,
+    )
+
+    sorted_books = sort_by_year(
+        books,
+    )
+
+    print_books(
+        "Sorted by year",
+        sorted_books,
+    )
+
+    sorted_pages = sort_by_pages(
+        books,
+    )
+
+    print_books(
+        "Sorted by pages",
+        sorted_pages,
+    )
+
+    largest = find_largest_book(
+        books,
     )
 
     print(
-        "\nSearch by title:",
-        find_book_by_title(
-            books,
-            "Clean Code",
-        ),
+        "\nLargest book:",
+        largest,
     )
 
-    title_index = create_title_index(books)
+    average = calculate_average_pages(
+        books,
+    )
 
     print(
-        "\nTitle index:",
-        title_index.get("Python Basics"),
+        f"\nAverage pages: {average:.2f}"
+    )
+
+    stats = get_page_statistics(
+        books,
+    )
+
+    print(
+        "\nPage statistics tuple:",
+        stats,
+    )
+
+    average_args = calculate_average_values(
+        300,
+        500,
+        700,
+        900,
+    )
+
+    print(
+        "\nAverage using *args:",
+        average_args,
+    )
+
+    record = create_record(
+        id=100,
+        title="Test Book",
+        author="Test Author",
+        year=2026,
+        pages=200,
+    )
+
+    print(
+        "\nRecord using **kwargs:",
+        record,
     )
 
     top_books = get_top_n(
@@ -138,80 +227,58 @@ def main() -> None:
         top_books,
     )
 
-    aggregation = aggregate_books(books)
-
-    print("\nAggregation:")
-    print(aggregation)
-
-    statistics = get_page_statistics(books)
+    aggregation = aggregate_books(
+        books,
+    )
 
     print(
-        "\nPage statistics tuple:",
-        statistics,
+        "\nAggregation:",
+        aggregation,
     )
 
-    is_recent = create_year_filter(2019)
-
-    recent = filter_books(
+    summary = calculate_summary(
         books,
-        is_recent,
     )
 
-    print_books(
-        "Closure filter: year >= 2019",
-        recent,
+    print(
+        "\nSummary:",
+        summary,
     )
 
-    excellent_pages = filter_books(
-        books,
-        lambda book: book["pages"] >= 500,
-    )
-
-    print_books(
-        "Lambda filter: pages >= 500",
-        excellent_pages,
-    )
-
-    pipeline = compose(
-        lambda items: filter_by_year(
-            items,
-            2015,
-        ),
-        lambda items: sort_by_pages(
-            items,
-            reverse=True,
-        ),
+    pipeline = build_processing_pipeline(
+        2019,
     )
 
     pipeline_result = pipeline(books)
 
     print_books(
-        "Function composition pipeline",
+        "Pipeline: year >= 2019, sorted by year",
         pipeline_result,
     )
 
-    average_demo = calculate_average_values(
-        100,
-        200,
-        300,
+    universal_filter = filter_books(
+        books,
+        lambda book: book["pages"] >= 500,
+    )
+
+    print_books(
+        "Universal filter: pages >= 500",
+        universal_filter,
+    )
+
+    exported = {
+        **summary,
+        "unique_authors": sorted(authors),
+        "counter": dict(counter),
+    }
+
+    export_summary(
+        exported,
+        "summary.json",
     )
 
     print(
-        "\nAverage via *args:",
-        average_demo,
-    )
-
-    record = create_record(
-        id=100,
-        title="Demo Book",
-        author="Demo Author",
-        year=2026,
-        pages=200,
-    )
-
-    print(
-        "\nRecord via **kwargs:",
-        record,
+        "\nSummary exported to summary.json"
     )
 
     run_benchmark()

@@ -5,6 +5,7 @@ def export_summary(
     summary: dict,
     filename: str = "summary.json",
 ) -> None:
+    """Export summary to JSON."""
 
     with open(
         filename,

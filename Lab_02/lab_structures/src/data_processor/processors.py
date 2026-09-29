@@ -16,7 +16,7 @@ def get_unique_authors(
 def create_book_index(
     books: list[dict],
 ) -> dict[int, dict]:
-    """Create O(1) average lookup index by ID."""
+    """Create dictionary index by book ID."""
 
     return {
         book["id"]: book
@@ -39,7 +39,7 @@ def find_book_by_id(
     books: list[dict],
     book_id: int,
 ) -> dict | None:
-    """Linear search by ID."""
+    """Linear search by ID. O(n)."""
 
     for book in books:
         if book["id"] == book_id:
@@ -52,7 +52,7 @@ def find_book_by_title(
     books: list[dict],
     title: str,
 ) -> dict | None:
-    """Linear search by title."""
+    """Linear search by title. O(n)."""
 
     for book in books:
         if book["title"] == title:
@@ -65,7 +65,7 @@ def find_book_in_index(
     index: dict[int, dict],
     book_id: int,
 ) -> dict | None:
-    """Average O(1) lookup in dictionary."""
+    """Average O(1) dictionary lookup."""
 
     return index.get(book_id)
 
@@ -86,9 +86,7 @@ def filter_by_year(
 def create_year_filter(
     minimum_year: int,
 ) -> Callable[[dict], bool]:
-    """
-    Closure that remembers minimum_year.
-    """
+    """Create closure remembering minimum_year."""
 
     def predicate(book: dict) -> bool:
         return book["year"] >= minimum_year
@@ -117,7 +115,9 @@ def group_books_by_author(
     grouped = defaultdict(list)
 
     for book in books:
-        grouped[book["author"]].append(book.copy())
+        grouped[book["author"]].append(
+            book.copy()
+        )
 
     return dict(grouped)
 
@@ -125,7 +125,7 @@ def group_books_by_author(
 def count_books_by_author(
     books: list[dict],
 ) -> Counter:
-    """Count books for every author."""
+    """Count books by author."""
 
     return Counter(
         book["author"]
@@ -140,7 +140,10 @@ def sort_by_year(
     """Sort books by publication year."""
 
     return sorted(
-        (book.copy() for book in books),
+        (
+            book.copy()
+            for book in books
+        ),
         key=lambda book: (
             book["year"],
             book["title"],
@@ -153,27 +156,22 @@ def sort_by_pages(
     books: list[dict],
     reverse: bool = True,
 ) -> list[dict]:
-    """Sort books by page count."""
+    """Sort books by number of pages."""
 
     return sorted(
-        (book.copy() for book in books),
-        key=lambda book: (
-            -book["pages"],
-            book["title"],
+        (
+            book.copy()
+            for book in books
         ),
-    ) if reverse else sorted(
-        (book.copy() for book in books),
-        key=lambda book: (
-            book["pages"],
-            book["title"],
-        ),
+        key=lambda book: book["pages"],
+        reverse=reverse,
     )
 
 
 def find_largest_book(
     books: list[dict],
 ) -> dict | None:
-    """Find book with the largest number of pages."""
+    """Find book with maximum number of pages."""
 
     if not books:
         return None
@@ -187,23 +185,21 @@ def find_largest_book(
 def calculate_average_pages(
     books: list[dict],
 ) -> float:
-    """Calculate average page count."""
+    """Calculate average number of pages."""
 
     if not books:
         return 0.0
 
-    total_pages = sum(
+    return sum(
         book["pages"]
         for book in books
-    )
-
-    return total_pages / len(books)
+    ) / len(books)
 
 
 def calculate_average_values(
     *values: float,
 ) -> float:
-    """Calculate average using *args."""
+    """Demonstrate *args."""
 
     if not values:
         return 0.0
@@ -214,7 +210,7 @@ def calculate_average_values(
 def create_record(
     **fields,
 ) -> dict:
-    """Create a dictionary using **kwargs."""
+    """Demonstrate **kwargs."""
 
     return dict(fields)
 
@@ -223,9 +219,10 @@ def get_page_statistics(
     books: list[dict],
 ) -> tuple[int, int, float]:
     """
-    Return min pages, max pages and average pages.
+    Return minimum pages,
+    maximum pages and average pages.
 
-    Tuple is used as an immutable result structure.
+    Tuple is immutable.
     """
 
     if not books:
@@ -245,13 +242,12 @@ def get_page_statistics(
 
 def process_pipeline(
     items: list[dict],
-    *operations: Callable[[list[dict]], list[dict]],
+    *operations: Callable[
+        [list[dict]],
+        list[dict],
+    ],
 ) -> list[dict]:
-    """
-    Apply operations from left to right.
-
-    This is a reusable function-composition pipeline.
-    """
+    """Apply functions from left to right."""
 
     result = [
         item.copy()
