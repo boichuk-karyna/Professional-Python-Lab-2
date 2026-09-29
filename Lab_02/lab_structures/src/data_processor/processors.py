@@ -1,127 +1,199 @@
-from collections import Counter, defaultdict, deque
+from functools import reduce
 from collections.abc import Callable
 
 
-def get_unique_authors(
-    books: list[dict],
-) -> set[str]:
-    return {
-        book["author"]
-        for book in books
-    }
+def calculate_average(scores: list[float]) -> float:
+    """Calculate average score without mutating input."""
+    if not scores:
+        return 0.0
+
+    return sum(scores) / len(scores)
 
 
-def create_book_index(
-    books: list[dict],
-) -> dict[int, dict]:
-    return {
-        book["id"]: book
-        for book in books
-    }
-
-
-def filter_by_year(
-    books: list[dict],
-    start_year: int,
-    end_year: int,
+def filter_by_min_scores(
+    students: list[dict],
+    min_scores: int,
 ) -> list[dict]:
+    """Keep students with enough scores."""
     return [
-        book
-        for book in books
-        if start_year <= book["year"] <= end_year
+        student.copy()
+        for student in students
+        if len(student["scores"]) >= min_scores
     ]
 
 
-def search_book(
-    books: list[dict],
-    query: str,
+def add_average_score(
+    students: list[dict],
 ) -> list[dict]:
-    query = query.lower()
-
+    """Add average score to every student."""
     return [
-        book
-        for book in books
-        if query in book["title"].lower()
-        or query in book["author"].lower()
+        {
+            **student,
+            "average": calculate_average(student["scores"]),
+        }
+        for student in students
     ]
 
 
-def group_books_by_author(
-    books: list[dict],
-) -> dict[str, list[dict]]:
-    result = defaultdict(list)
-
-    for book in books:
-        result[book["author"]].append(book)
-
-    return dict(result)
-
-
-def count_books_by_author(
-    books: list[dict],
-) -> Counter:
-    return Counter(
-        book["author"]
-        for book in books
-    )
-
-
-def get_books_by_author(
-    books: list[dict],
-    author: str,
+def add_group_bonus(
+    students: list[dict],
+    selected_group: str,
+    bonus: float,
 ) -> list[dict]:
+    """Add bonus to students from selected group."""
     return [
-        book
-        for book in books
-        if book["author"] == author
+        {
+            **student,
+            "average": (
+                student["average"] + bonus
+                if student["group"] == selected_group
+                else student["average"]
+            ),
+        }
+        for student in students
     ]
 
 
-def filter_items(
-    items: list[dict],
-    predicate: Callable[[dict], bool],
+def sort_students(
+    students: list[dict],
 ) -> list[dict]:
-    return [
-        item
-        for item in items
-        if predicate(item)
-    ]
-
-
-def sort_items(
-    items: list[dict],
-    key: Callable[[dict], object],
-    reverse: bool = False,
-) -> list[dict]:
+    """
+    Sort students by:
+    1. average descending
+    2. name ascending
+    """
     return sorted(
-        items,
-        key=key,
-        reverse=reverse,
+        students,
+        key=lambda student: (
+            -student["average"],
+            student["name"],
+        ),
     )
 
 
-def group_books_by_author_and_year(
-    books: list[dict],
-) -> dict[str, dict[int, list[dict]]]:
-    result = defaultdict(lambda: defaultdict(list))
+def get_top_n(
+    students: list[dict],
+    n: int,
+) -> list[dict]:
+    """Return Top-N students."""
+    return sort_students(students)[:n]
 
-    for book in books:
-        result[book["author"]][book["year"]].append(book)
+
+def aggregate_students(
+    students: list[dict],
+) -> dict:
+    """
+    Aggregate students using reduce.
+
+    Returns:
+        count: number of students
+        sum_avg: sum of average scores
+        group_avg: average score by group
+    """
+
+    initial = {
+        "count": 0,
+        "sum_avg": 0.0,
+        "group_sum": {},
+        "group_count": {},
+    }
+
+    def reducer(
+        accumulator: dict,
+        student: dict,
+    ) -> dict:
+        group = student["group"]
+        average = student["average"]
+
+        accumulator["count"] += 1
+        accumulator["sum_avg"] += average
+
+        accumulator["group_sum"][group] = (
+            accumulator["group_sum"].get(group, 0.0)
+            + average
+        )
+
+        accumulator["group_count"][group] = (
+            accumulator["group_count"].get(group, 0)
+            + 1
+        )
+
+        return accumulator
+
+    result = reduce(
+        reducer,
+        students,
+        initial,
+    )
+
+    group_avg = {
+        group: result["group_sum"][group]
+        / result["group_count"][group]
+        for group in result["group_sum"]
+    }
 
     return {
-        author: dict(years)
-        for author, years in result.items()
+        "count": result["count"],
+        "sum_avg": result["sum_avg"],
+        "group_avg": group_avg,
     }
 
 
-def create_operation_history(
-    max_size: int = 10,
-) -> deque[str]:
-    return deque(maxlen=max_size)
+def compose(
+    *functions: Callable,
+) -> Callable:
+    """Compose functions from left to right."""
+
+    def pipeline(value):
+        result = value
+
+        for function in functions:
+            result = function(result)
+
+        return result
+
+    return pipeline
 
 
-def record_operation(
-    history: deque[str],
-    operation: str,
-) -> None:
-    history.append(operation)
+def process_students(
+    students: list[dict],
+    min_scores: int,
+    selected_group: str,
+    bonus: float,
+    top_n: int,
+) -> dict:
+    """Complete Lab_02 processing pipeline."""
+
+    filtered = filter_by_min_scores(
+        students,
+        min_scores,
+    )
+
+    with_average = add_average_score(
+        filtered,
+    )
+
+    with_bonus = add_group_bonus(
+        with_average,
+        selected_group,
+        bonus,
+    )
+
+    sorted_students = sort_students(
+        with_bonus,
+    )
+
+    top_students = get_top_n(
+        sorted_students,
+        top_n,
+    )
+
+    aggregation = aggregate_students(
+        sorted_students,
+    )
+
+    return {
+        "students": sorted_students,
+        "top_n": top_students,
+        "aggregation": aggregation,
+    }
