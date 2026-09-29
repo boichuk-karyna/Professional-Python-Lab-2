@@ -1,203 +1,181 @@
-from functools import reduce
+from collections import Counter, defaultdict
 from collections.abc import Callable
 
 
-def calculate_average(scores: list[float]) -> float:
-    """Calculate average score without mutating input."""
-    if not scores:
-        return 0.0
+def get_unique_authors(
+    books: list[dict],
+) -> set[str]:
+    """Return unique book authors."""
 
-    return sum(scores) / len(scores)
+    return {
+        book["author"]
+        for book in books
+    }
 
 
-def filter_by_min_scores(
-    students: list[dict],
-    min_scores: int,
+def create_book_index(
+    books: list[dict],
+) -> dict[int, dict]:
+    """Create dictionary index by book ID."""
+
+    return {
+        book["id"]: book
+        for book in books
+    }
+
+
+def create_title_index(
+    books: list[dict],
+) -> dict[str, dict]:
+    """Create dictionary index by book title."""
+
+    return {
+        book["title"]: book
+        for book in books
+    }
+
+
+def find_book_by_id(
+    books: list[dict],
+    book_id: int,
+) -> dict | None:
+    """Find book by ID."""
+
+    index = create_book_index(books)
+
+    return index.get(book_id)
+
+
+def find_book_by_title(
+    books: list[dict],
+    title: str,
+) -> dict | None:
+    """Find book by title."""
+
+    index = create_title_index(books)
+
+    return index.get(title)
+
+
+def filter_by_year(
+    books: list[dict],
+    minimum_year: int,
 ) -> list[dict]:
-    """Filter students who have enough scores."""
+    """Return books published from minimum_year."""
+
     return list(
         filter(
-            lambda student: len(student["scores"]) >= min_scores,
-            students,
+            lambda book: book["year"] >= minimum_year,
+            books,
         )
     )
 
 
-def add_average_score(
-    students: list[dict],
+def filter_by_pages(
+    books: list[dict],
+    minimum_pages: int,
 ) -> list[dict]:
-    """Create new student records with average score."""
+    """Return books with enough pages."""
+
     return [
-        {
-            **student,
-            "average": calculate_average(student["scores"]),
-        }
-        for student in students
+        book
+        for book in books
+        if book["pages"] >= minimum_pages
     ]
 
 
-def add_group_bonus(
-    students: list[dict],
-    selected_group: str,
-    bonus: float,
-) -> list[dict]:
-    """Create new records and add bonus to selected group."""
-    return [
-        {
-            **student,
-            "average": (
-                student["average"] + bonus
-                if student["group"] == selected_group
-                else student["average"]
-            ),
-        }
-        for student in students
-    ]
+def group_books_by_author(
+    books: list[dict],
+) -> dict[str, list[dict]]:
+    """Group books by author using defaultdict."""
+
+    grouped = defaultdict(list)
+
+    for book in books:
+        grouped[book["author"]].append(book)
+
+    return dict(grouped)
 
 
-def sort_students(
-    students: list[dict],
+def count_books_by_author(
+    books: list[dict],
+) -> Counter:
+    """Count books written by each author."""
+
+    return Counter(
+        book["author"]
+        for book in books
+    )
+
+
+def sort_by_year(
+    books: list[dict],
+    reverse: bool = False,
 ) -> list[dict]:
-    """
-    Sort students by:
-    1. average descending;
-    2. name ascending.
-    """
+    """Sort books by publication year."""
+
     return sorted(
-        students,
-        key=lambda student: (
-            -student["average"],
-            student["name"],
+        books,
+        key=lambda book: (
+            book["year"],
+            book["title"],
         ),
+        reverse=reverse,
     )
 
 
-def get_top_n(
-    students: list[dict],
-    n: int,
+def sort_by_pages(
+    books: list[dict],
+    reverse: bool = True,
 ) -> list[dict]:
-    """Return Top-N students."""
-    if n <= 0:
-        return []
+    """Sort books by number of pages."""
 
-    return sort_students(students)[:n]
-
-
-def aggregate_students(
-    students: list[dict],
-) -> dict:
-    """
-    Aggregate students using reduce.
-
-    Returns:
-        count: number of students
-        sum_avg: sum of average scores
-        group_avg: average score by group
-    """
-
-    initial = {
-        "count": 0,
-        "sum_avg": 0.0,
-        "group_sum": {},
-        "group_count": {},
-    }
-
-    def reducer(
-        accumulator: dict,
-        student: dict,
-    ) -> dict:
-        group = student["group"]
-        average = student["average"]
-
-        accumulator["count"] += 1
-        accumulator["sum_avg"] += average
-
-        accumulator["group_sum"][group] = (
-            accumulator["group_sum"].get(group, 0.0)
-            + average
-        )
-
-        accumulator["group_count"][group] = (
-            accumulator["group_count"].get(group, 0)
-            + 1
-        )
-
-        return accumulator
-
-    result = reduce(
-        reducer,
-        students,
-        initial,
-    )
-
-    group_avg = {
-        group: result["group_sum"][group]
-        / result["group_count"][group]
-        for group in result["group_sum"]
-    }
-
-    return {
-        "count": result["count"],
-        "sum_avg": result["sum_avg"],
-        "group_avg": group_avg,
-    }
-
-
-def compose(
-    *functions: Callable,
-) -> Callable:
-    """Compose functions from left to right."""
-
-    def pipeline(value):
-        result = value
-
-        for function in functions:
-            result = function(result)
-
-        return result
-
-    return pipeline
-
-
-def process_students(
-    students: list[dict],
-    min_scores: int,
-    selected_group: str,
-    bonus: float,
-    top_n: int,
-) -> dict:
-    """Process students using a composed functional pipeline."""
-
-    pipeline = compose(
-        lambda data: filter_by_min_scores(
-            data,
-            min_scores,
+    return sorted(
+        books,
+        key=lambda book: (
+            book["pages"],
+            book["title"],
         ),
-        add_average_score,
-        lambda data: add_group_bonus(
-            data,
-            selected_group,
-            bonus,
-        ),
+        reverse=reverse,
     )
 
-    processed_students = pipeline(students)
 
-    sorted_students = sort_students(
-        processed_students,
+def find_largest_book(
+    books: list[dict],
+) -> dict | None:
+    """Find book with maximum number of pages."""
+
+    if not books:
+        return None
+
+    return max(
+        books,
+        key=lambda book: book["pages"],
     )
 
-    top_students = get_top_n(
-        sorted_students,
-        top_n,
-    )
 
-    aggregation = aggregate_students(
-        sorted_students,
-    )
+def filter_items(
+    items: list[dict],
+    predicate: Callable[[dict], bool],
+) -> list[dict]:
+    """Universal filtering function."""
 
-    return {
-        "students": sorted_students,
-        "top_n": top_students,
-        "aggregation": aggregation,
-    }
+    return [
+        item
+        for item in items
+        if predicate(item)
+    ]
+
+
+def sort_items(
+    items: list[dict],
+    key: Callable,
+    reverse: bool = False,
+) -> list[dict]:
+    """Universal sorting function."""
+
+    return sorted(
+        items,
+        key=key,
+        reverse=reverse,
+    )

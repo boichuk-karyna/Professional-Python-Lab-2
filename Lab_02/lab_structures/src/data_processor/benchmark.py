@@ -5,6 +5,7 @@ def find_linear(
     books: list[dict],
     book_id: int,
 ) -> dict | None:
+
     for book in books:
         if book["id"] == book_id:
             return book
@@ -27,14 +28,14 @@ def benchmark(
         for i in range(size)
     ]
 
-    book_id = size - 1
+    target_id = size - 1
 
-    index = {
+    book_index = {
         book["id"]: book
         for book in books
     }
 
-    ids = {
+    book_ids = {
         book["id"]
         for book in books
     }
@@ -43,20 +44,22 @@ def benchmark(
 
     find_linear(
         books,
-        book_id,
+        target_id,
     )
 
     list_time = perf_counter() - start
 
     start = perf_counter()
 
-    index.get(book_id)
+    book_index.get(
+        target_id
+    )
 
     dict_time = perf_counter() - start
 
     start = perf_counter()
 
-    book_id in ids
+    target_id in book_ids
 
     set_time = perf_counter() - start
 
@@ -68,25 +71,29 @@ def benchmark(
 
 
 def run_benchmark() -> None:
+
     sizes = [
-        1000,
-        10000,
-        100000,
+        1_000,
+        10_000,
+        100_000,
     ]
 
-    print("\nBenchmark")
+    print()
+    print("BENCHMARK")
     print("-" * 80)
 
     print(
         f"{'Records':<15}"
-        f"{'List search':<20}"
-        f"{'Dict search':<20}"
-        f"{'Set search':<20}"
+        f"{'List O(n)':<20}"
+        f"{'Dict O(1)':<20}"
+        f"{'Set O(1)':<20}"
     )
 
     for size in sizes:
 
-        list_time, dict_time, set_time = benchmark(size)
+        list_time, dict_time, set_time = (
+            benchmark(size)
+        )
 
         print(
             f"{size:<15}"
@@ -94,3 +101,7 @@ def run_benchmark() -> None:
             f"{dict_time:<20.8f}"
             f"{set_time:<20.8f}"
         )
+
+
+if __name__ == "__main__":
+    run_benchmark()

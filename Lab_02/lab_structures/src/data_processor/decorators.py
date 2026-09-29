@@ -3,6 +3,8 @@ from time import perf_counter
 
 
 def measure_time(func):
+    """Decorator that measures function execution time."""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         start = perf_counter()
@@ -22,13 +24,19 @@ def measure_time(func):
 
 
 def repeat(count: int):
+    """Parameterized decorator."""
+
     def decorator(func):
+
         @wraps(func)
         def wrapper(*args, **kwargs):
             result = None
 
             for _ in range(count):
-                result = func(*args, **kwargs)
+                result = func(
+                    *args,
+                    **kwargs,
+                )
 
             return result
 
