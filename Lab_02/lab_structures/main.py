@@ -1,287 +1,276 @@
-from src.data_processor.analytics import (
-    aggregate_books,
-    build_processing_pipeline,
-    calculate_average_pages,
-    calculate_summary,
-    get_top_n,
-)
-from src.data_processor.benchmark import (
-    run_benchmark,
-)
-from src.data_processor.data import books
-from src.data_processor.decorators import (
-    repeat,
-)
-from src.data_processor.export import (
-    export_summary,
-)
+from src.data_processor.data import students
+
 from src.data_processor.processors import (
     calculate_average_values,
-    count_books_by_author,
-    create_book_index,
+    count_students_by_group,
     create_record,
-    create_title_index,
-    create_year_filter,
-    filter_books,
-    find_book_by_id,
-    find_book_by_title,
-    find_book_in_index,
-    find_largest_book,
-    get_page_statistics,
-    get_unique_authors,
-    group_books_by_author,
-    sort_by_pages,
-    sort_by_year,
+    create_student_index,
+    create_min_scores_filter,
+    filter_students,
+    get_score_statistics,
+    get_student_names,
+    get_unique_groups,
+    group_students_by_group,
+    total_number_of_scores,
+)
+
+from src.data_processor.analytics import (
+    calculate_average_for_students,
+    process_students,
 )
 
 
-def print_books(
+def print_students(
     title: str,
     items: list[dict],
 ) -> None:
-    """Print books."""
 
-    print(f"\n{title}")
+    print()
+    print(title)
     print("-" * 80)
 
-    for book in items:
-        print(
-            f"{book['id']:2} | "
-            f"{book['title']:<30} | "
-            f"{book['author']:<20} | "
-            f"{book['year']} | "
-            f"{book['pages']} pages"
+    for student in items:
+
+        average = student.get(
+            "average",
+            0.0,
         )
 
-
-@repeat(1)
-def show_message() -> None:
-    """Demonstrate parameterized decorator."""
-
-    print("\nLab_02 - Variant 2")
+        print(
+            f"{student['id']:2} | "
+            f"{student['name']:<22} | "
+            f"{student['group']:<6} | "
+            f"scores={student['scores']} | "
+            f"average={average:.2f}"
+        )
 
 
 def main() -> None:
 
-    show_message()
-
-    print_books(
-        "All books",
-        books,
+    print_students(
+        "ALL STUDENTS",
+        students,
     )
 
-    authors = get_unique_authors(books)
+    # -----------------------------------------------------
+    # SET
+    # -----------------------------------------------------
 
-    print(
-        "\nUnique authors:",
-        authors,
-    )
-
-    index = create_book_index(books)
-
-    title_index = create_title_index(books)
-
-    print(
-        "\nBook index:",
-        index,
-    )
-
-    found_by_id = find_book_by_id(
-        books,
-        4,
+    groups = get_unique_groups(
+        students
     )
 
     print(
-        "\nSearch by ID:",
-        found_by_id,
+        "\nUnique groups:",
+        groups,
     )
 
-    found_by_title = find_book_by_title(
-        books,
-        "Clean Code",
-    )
+    # -----------------------------------------------------
+    # DICT INDEX
+    # -----------------------------------------------------
 
-    print(
-        "\nSearch by title:",
-        found_by_title,
-    )
-
-    found_in_index = find_book_in_index(
-        index,
-        5,
+    index = create_student_index(
+        students
     )
 
     print(
-        "\nDictionary search:",
-        found_in_index,
+        "\nSearch by dictionary index:",
+        index.get(4),
     )
 
-    filtered = filter_books(
-        books,
-        create_year_filter(2019),
-    )
+    # -----------------------------------------------------
+    # LINEAR SEARCH
+    # -----------------------------------------------------
 
-    print_books(
-        "Books from 2019",
-        filtered,
-    )
-
-    grouped = group_books_by_author(
-        books,
-    )
-
-    print("\nBooks grouped by author:")
-
-    for author, author_books in grouped.items():
-        print(
-            author,
-            "->",
-            len(author_books),
-        )
-
-    counter = count_books_by_author(
-        books,
+    from src.data_processor.processors import (
+        find_student_by_id,
     )
 
     print(
-        "\nCounter:",
+        "\nLinear search:",
+        find_student_by_id(
+            students,
+            3,
+        ),
+    )
+
+    # -----------------------------------------------------
+    # CLOSURE
+    # -----------------------------------------------------
+
+    predicate = create_min_scores_filter(
+        3
+    )
+
+    students_with_three_scores = filter_students(
+        students,
+        predicate,
+    )
+
+    print_students(
+        "STUDENTS WITH AT LEAST 3 SCORES",
+        students_with_three_scores,
+    )
+
+    # -----------------------------------------------------
+    # MAP
+    # -----------------------------------------------------
+
+    names = get_student_names(
+        students
+    )
+
+    print(
+        "\nNames via map:",
+        names,
+    )
+
+    # -----------------------------------------------------
+    # GENERATOR
+    # -----------------------------------------------------
+
+    scores_count = total_number_of_scores(
+        students
+    )
+
+    print(
+        "\nTotal number of scores:",
+        scores_count,
+    )
+
+    # -----------------------------------------------------
+    # TUPLE
+    # -----------------------------------------------------
+
+    statistics = get_score_statistics(
+        students
+    )
+
+    print(
+        "\nScore statistics tuple:",
+        statistics,
+    )
+
+    # -----------------------------------------------------
+    # COUNTER
+    # -----------------------------------------------------
+
+    counter = count_students_by_group(
+        students
+    )
+
+    print(
+        "\nStudents by group:",
         counter,
     )
 
-    sorted_books = sort_by_year(
-        books,
+    # -----------------------------------------------------
+    # FULL PIPELINE
+    # -----------------------------------------------------
+
+    result = process_students(
+        students=students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=3,
     )
 
-    print_books(
-        "Sorted by year",
-        sorted_books,
+    print_students(
+        "PROCESSED AND SORTED STUDENTS",
+        result["students"],
     )
 
-    sorted_pages = sort_by_pages(
-        books,
+    print_students(
+        "TOP 3",
+        result["top_n"],
     )
 
-    print_books(
-        "Sorted by pages",
-        sorted_pages,
-    )
+    # -----------------------------------------------------
+    # REDUCE
+    # -----------------------------------------------------
 
-    largest = find_largest_book(
-        books,
+    print(
+        "\nREDUCE AGGREGATION:"
     )
 
     print(
-        "\nLargest book:",
-        largest,
-    )
-
-    average = calculate_average_pages(
-        books,
+        "count:",
+        result["aggregation"]["count"],
     )
 
     print(
-        f"\nAverage pages: {average:.2f}"
-    )
-
-    stats = get_page_statistics(
-        books,
+        "sum_avg:",
+        result["aggregation"]["sum_avg"],
     )
 
     print(
-        "\nPage statistics tuple:",
-        stats,
+        "group_avg:",
+        result["aggregation"]["group_avg"],
     )
 
-    average_args = calculate_average_values(
-        300,
-        500,
-        700,
-        900,
+    # -----------------------------------------------------
+    # DECORATOR
+    # -----------------------------------------------------
+
+    average = calculate_average_for_students(
+        result["students"]
     )
 
     print(
-        "\nAverage using *args:",
-        average_args,
+        "\nAverage:",
+        average,
     )
+
+    # -----------------------------------------------------
+    # *ARGS
+    # -----------------------------------------------------
+
+    demo_average = calculate_average_values(
+        80,
+        90,
+        100,
+    )
+
+    print(
+        "\nAverage via *args:",
+        demo_average,
+    )
+
+    # -----------------------------------------------------
+    # **KWARGS
+    # -----------------------------------------------------
 
     record = create_record(
         id=100,
-        title="Test Book",
-        author="Test Author",
-        year=2026,
-        pages=200,
+        name="Test Student",
+        group="KN-99",
+        scores=[90, 95],
     )
 
     print(
-        "\nRecord using **kwargs:",
+        "\nRecord via **kwargs:",
         record,
     )
 
-    top_books = get_top_n(
-        books,
-        3,
-    )
+    # -----------------------------------------------------
+    # GROUPING
+    # -----------------------------------------------------
 
-    print_books(
-        "Top 3 books by pages",
-        top_books,
-    )
-
-    aggregation = aggregate_books(
-        books,
+    grouped = group_students_by_group(
+        students
     )
 
     print(
-        "\nAggregation:",
-        aggregation,
+        "\nGrouped students:"
     )
 
-    summary = calculate_summary(
-        books,
-    )
-
-    print(
-        "\nSummary:",
-        summary,
-    )
-
-    pipeline = build_processing_pipeline(
-        2019,
-    )
-
-    pipeline_result = pipeline(books)
-
-    print_books(
-        "Pipeline: year >= 2019, sorted by year",
-        pipeline_result,
-    )
-
-    universal_filter = filter_books(
-        books,
-        lambda book: book["pages"] >= 500,
-    )
-
-    print_books(
-        "Universal filter: pages >= 500",
-        universal_filter,
-    )
-
-    exported = {
-        **summary,
-        "unique_authors": sorted(authors),
-        "counter": dict(counter),
-    }
-
-    export_summary(
-        exported,
-        "summary.json",
-    )
-
-    print(
-        "\nSummary exported to summary.json"
-    )
-
-    run_benchmark()
+    for group, members in grouped.items():
+        print(
+            group,
+            "->",
+            len(members),
+        )
 
 
 if __name__ == "__main__":

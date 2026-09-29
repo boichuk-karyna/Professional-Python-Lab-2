@@ -1,236 +1,186 @@
 from copy import deepcopy
 
-from src.data_processor.analytics import (
-    aggregate_books,
-    compose,
-    get_top_n,
-)
-from src.data_processor.data import books
+from src.data_processor.data import students
+
 from src.data_processor.processors import (
-    calculate_average_pages,
+    calculate_average,
     calculate_average_values,
-    count_books_by_author,
-    create_book_index,
+    create_min_scores_filter,
     create_record,
-    create_year_filter,
-    filter_books,
-    filter_by_year,
-    find_book_by_id,
-    find_book_by_title,
-    find_largest_book,
-    get_page_statistics,
-    get_unique_authors,
-    group_books_by_author,
-    sort_by_pages,
-    sort_by_year,
+    create_student_index,
+    filter_by_min_scores,
+    filter_students,
+    get_score_statistics,
+    get_student_names,
+    get_unique_groups,
+    group_students_by_group,
+    sort_students,
+)
+
+from src.data_processor.analytics import (
+    aggregate_students,
+    compose,
+    process_students,
 )
 
 
-def test_get_unique_authors():
-    result = get_unique_authors(books)
+# ---------------------------------------------------------
+# BASIC DATA STRUCTURES
+# ---------------------------------------------------------
 
-    assert isinstance(result, set)
-    assert "Mark Lutz" in result
-    assert "Robert Martin" in result
-
-
-def test_create_book_index():
-    index = create_book_index(books)
-
-    assert isinstance(index, dict)
-    assert index[1]["title"] == "Python Basics"
-    assert index[4]["title"] == "Fluent Python"
+def test_students_is_list():
+    assert isinstance(students, list)
 
 
-def test_find_book_by_id():
-    result = find_book_by_id(
-        books,
+def test_student_is_dict():
+    assert isinstance(students[0], dict)
+
+
+def test_required_student_fields():
+    required = {
+        "id",
+        "name",
+        "group",
+        "scores",
+    }
+
+    for student in students:
+        assert required.issubset(
+            student.keys()
+        )
+
+
+# ---------------------------------------------------------
+# AVERAGE
+# ---------------------------------------------------------
+
+def test_calculate_average():
+    assert calculate_average(
+        [80, 90, 100]
+    ) == 90.0
+
+
+def test_calculate_average_empty():
+    assert calculate_average([]) == 0.0
+
+
+# ---------------------------------------------------------
+# FILTER
+# ---------------------------------------------------------
+
+def test_filter_by_min_scores():
+    result = filter_by_min_scores(
+        students,
         3,
     )
 
-    assert result is not None
-    assert result["title"] == "Effective Python"
-
-
-def test_find_book_by_title():
-    result = find_book_by_title(
-        books,
-        "Clean Code",
-    )
-
-    assert result is not None
-    assert result["id"] == 2
-
-
-def test_find_book_not_found():
-    assert find_book_by_id(
-        books,
-        999,
-    ) is None
-
-
-def test_filter_by_year():
-    result = filter_by_year(
-        books,
-        2019,
-    )
+    assert len(result) == 5
 
     assert all(
-        book["year"] >= 2019
-        for book in result
+        len(student["scores"]) >= 3
+        for student in result
     )
 
 
-def test_filter_closure():
-    predicate = create_year_filter(
-        2020,
+# ---------------------------------------------------------
+# UNIQUE GROUPS
+# ---------------------------------------------------------
+
+def test_unique_groups():
+    groups = get_unique_groups(
+        students
     )
 
-    result = filter_books(
-        books,
+    assert isinstance(groups, set)
+
+    assert groups == {
+        "KN-21",
+        "KN-22",
+        "KN-23",
+    }
+
+
+# ---------------------------------------------------------
+# DICT INDEX
+# ---------------------------------------------------------
+
+def test_student_index():
+    index = create_student_index(
+        students
+    )
+
+    assert isinstance(index, dict)
+
+    assert index[1]["name"] == (
+        "Ivan Petrenko"
+    )
+
+    assert index[4]["name"] == (
+        "Maria Shevchenko"
+    )
+
+
+# ---------------------------------------------------------
+# GROUPING
+# ---------------------------------------------------------
+
+def test_grouping():
+    grouped = group_students_by_group(
+        students
+    )
+
+    assert "KN-21" in grouped
+    assert "KN-22" in grouped
+    assert "KN-23" in grouped
+
+    assert len(grouped["KN-21"]) == 3
+    assert len(grouped["KN-22"]) == 3
+    assert len(grouped["KN-23"]) == 2
+
+
+# ---------------------------------------------------------
+# CLOSURE
+# ---------------------------------------------------------
+
+def test_closure():
+    predicate = create_min_scores_filter(
+        3
+    )
+
+    result = filter_students(
+        students,
         predicate,
     )
 
     assert all(
-        book["year"] >= 2020
-        for book in result
+        len(student["scores"]) >= 3
+        for student in result
     )
 
 
-def test_calculate_average_pages():
-    result = calculate_average_pages(
-        books,
+# ---------------------------------------------------------
+# MAP
+# ---------------------------------------------------------
+
+def test_map():
+    names = get_student_names(
+        students
     )
 
-    expected = (
-        sum(
-            book["pages"]
-            for book in books
-        )
-        / len(books)
+    assert names[0] == (
+        "Ivan Petrenko"
     )
 
-    assert result == expected
+    assert len(names) == len(students)
 
 
-def test_calculate_average_pages_empty():
-    assert calculate_average_pages([]) == 0.0
+# ---------------------------------------------------------
+# TUPLE
+# ---------------------------------------------------------
 
-
-def test_find_largest_book():
-    result = find_largest_book(
-        books,
-    )
-
-    assert result is not None
-    assert result["title"] == "Learning Python"
-    assert result["pages"] == 1648
-
-
-def test_sort_by_year():
-    result = sort_by_year(
-        books,
-    )
-
-    years = [
-        book["year"]
-        for book in result
-    ]
-
-    assert years == sorted(years)
-
-
-def test_sort_by_pages():
-    result = sort_by_pages(
-        books,
-    )
-
-    pages = [
-        book["pages"]
-        for book in result
-    ]
-
-    assert pages == sorted(
-        pages,
-        reverse=True,
-    )
-
-
-def test_top_n():
-    result = get_top_n(
-        books,
-        3,
-    )
-
-    assert len(result) == 3
-
-    pages = [
-        book["pages"]
-        for book in result
-    ]
-
-    assert pages == sorted(
-        pages,
-        reverse=True,
-    )
-
-
-def test_top_n_zero():
-    assert get_top_n(
-        books,
-        0,
-    ) == []
-
-
-def test_top_n_negative():
-    assert get_top_n(
-        books,
-        -1,
-    ) == []
-
-
-def test_group_books_by_author():
-    result = group_books_by_author(
-        books,
-    )
-
-    assert "Mark Lutz" in result
-    assert len(result["Mark Lutz"]) == 2
-
-
-def test_count_books_by_author():
-    result = count_books_by_author(
-        books,
-    )
-
-    assert result["Mark Lutz"] == 2
-
-
-def test_aggregate_books():
-    result = aggregate_books(
-        books,
-    )
-
-    assert result["count"] == len(books)
-
-    expected_sum = sum(
-        book["pages"]
-        for book in books
-    )
-
-    assert result["sum_pages"] == expected_sum
-
-    assert "author_avg" in result
-
-    assert isinstance(
-        result["author_avg"],
-        dict,
-    )
-
-
-def test_page_statistics_tuple():
-    result = get_page_statistics(
-        books,
+def test_tuple_statistics():
+    result = get_score_statistics(
+        students
     )
 
     assert isinstance(
@@ -238,9 +188,205 @@ def test_page_statistics_tuple():
         tuple,
     )
 
-    assert result[0] == 274
-    assert result[1] == 1648
+    assert len(result) == 3
 
+    minimum, maximum, average = result
+
+    assert minimum == 70
+    assert maximum == 97
+    assert average > 0
+
+
+# ---------------------------------------------------------
+# SORTING
+# ---------------------------------------------------------
+
+def test_sort_by_two_keys():
+    data = [
+        {
+            "id": 1,
+            "name": "Zed",
+            "group": "A",
+            "scores": [90],
+            "average": 90,
+        },
+        {
+            "id": 2,
+            "name": "Anna",
+            "group": "A",
+            "scores": [90],
+            "average": 90,
+        },
+        {
+            "id": 3,
+            "name": "Bob",
+            "group": "A",
+            "scores": [80],
+            "average": 80,
+        },
+    ]
+
+    result = sort_students(data)
+
+    assert result[0]["name"] == "Anna"
+    assert result[1]["name"] == "Zed"
+    assert result[2]["name"] == "Bob"
+
+
+# ---------------------------------------------------------
+# TOP N
+# ---------------------------------------------------------
+
+def test_top_n():
+    result = process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=3,
+    )
+
+    top = result["top_n"]
+
+    assert len(top) == 3
+
+    averages = [
+        student["average"]
+        for student in top
+    ]
+
+    assert averages == sorted(
+        averages,
+        reverse=True,
+    )
+
+
+def test_top_n_zero():
+    result = process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=0,
+    )
+
+    assert result["top_n"] == []
+
+
+# ---------------------------------------------------------
+# BONUS
+# ---------------------------------------------------------
+
+def test_group_bonus():
+    result = process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=10,
+    )
+
+    kn21 = [
+        student
+        for student in result["students"]
+        if student["group"] == "KN-21"
+    ]
+
+    assert all(
+        student["average"] > 0
+        for student in kn21
+    )
+
+
+# ---------------------------------------------------------
+# REDUCE
+# ---------------------------------------------------------
+
+def test_reduce_aggregation_keys():
+    result = process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=3,
+    )
+
+    aggregation = result[
+        "aggregation"
+    ]
+
+    assert set(
+        aggregation.keys()
+    ) == {
+        "count",
+        "sum_avg",
+        "group_avg",
+    }
+
+
+def test_reduce_count():
+    result = process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=3,
+    )
+
+    aggregation = result[
+        "aggregation"
+    ]
+
+    assert aggregation["count"] == 7
+
+
+def test_reduce_group_avg():
+    result = process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=3,
+    )
+
+    group_avg = result[
+        "aggregation"
+    ]["group_avg"]
+
+    assert isinstance(
+        group_avg,
+        dict,
+    )
+
+    assert "KN-21" in group_avg
+
+
+# ---------------------------------------------------------
+# COMPOSE
+# ---------------------------------------------------------
+
+def test_compose():
+    pipeline = compose(
+        lambda data: filter_by_min_scores(
+            data,
+            2,
+        ),
+        lambda data: data[:3],
+    )
+
+    result = pipeline(students)
+
+    assert len(result) == 3
+
+    assert all(
+        len(student["scores"]) >= 2
+        for student in result
+    )
+
+
+# ---------------------------------------------------------
+# *ARGS
+# ---------------------------------------------------------
 
 def test_args():
     result = calculate_average_values(
@@ -252,77 +398,41 @@ def test_args():
     assert result == 20.0
 
 
+# ---------------------------------------------------------
+# **KWARGS
+# ---------------------------------------------------------
+
 def test_kwargs():
     result = create_record(
-        id=1,
-        title="Test",
-        pages=100,
+        id=10,
+        name="Test",
+        group="KN-99",
+        scores=[100],
     )
 
     assert result == {
-        "id": 1,
-        "title": "Test",
-        "pages": 100,
+        "id": 10,
+        "name": "Test",
+        "group": "KN-99",
+        "scores": [100],
     }
 
 
-def test_compose():
-    pipeline = compose(
-        lambda items: filter_by_year(
-            items,
-            2019,
-        ),
-        lambda items: sort_by_pages(
-            items,
-            reverse=True,
-        ),
-    )
-
-    result = pipeline(books)
-
-    assert all(
-        book["year"] >= 2019
-        for book in result
-    )
-
-    pages = [
-        book["pages"]
-        for book in result
-    ]
-
-    assert pages == sorted(
-        pages,
-        reverse=True,
-    )
-
+# ---------------------------------------------------------
+# NO MUTATION
+# ---------------------------------------------------------
 
 def test_no_mutation():
-    original = deepcopy(books)
-
-    result = filter_by_year(
-        books,
-        2019,
+    original = deepcopy(
+        students
     )
 
-    result.append(
-        {
-            "id": 999,
-            "title": "Temporary",
-            "author": "Test",
-            "year": 2026,
-            "pages": 1,
-        }
+    process_students(
+        students,
+        min_scores=2,
+        selected_group="KN-21",
+        bonus=2.0,
+        top_n=3,
     )
 
-    assert books == original
-
-
-def test_top_n_no_mutation():
-    original = deepcopy(books)
-
-    get_top_n(
-        books,
-        3,
-    )
-
-    assert books == original
+    assert students == original

@@ -1,13 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
 
----
-
-### `pyproject.toml`
-
-Якщо його немає або він пустий:
-
-```toml
 [project]
-name = "professional-python-lab-2"
-version = "0.1.0"
-description = "Library book analysis"
-requires-python = ">=3.12"
+name = "lab-02"
+version = "1.0.0"
+description = "Lab 02 - Data Structures and Functional Decomposition"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "."
+]
+
+testpaths = [
+    "tests"
+]

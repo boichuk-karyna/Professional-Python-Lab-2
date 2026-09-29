@@ -4,57 +4,55 @@ from collections.abc import Callable
 from src.data_processor.decorators import measure_time
 
 
-@measure_time
-def calculate_average_pages(
-    books: list[dict],
-) -> float:
-    """Calculate average pages."""
+# ---------------------------------------------------------
+# REDUCE AGGREGATION
+# ---------------------------------------------------------
 
-    if not books:
-        return 0.0
-
-    return sum(
-        book["pages"]
-        for book in books
-    ) / len(books)
-
-
-def aggregate_books(
-    books: list[dict],
+def aggregate_students(
+    students: list[dict],
 ) -> dict:
     """
-    Aggregate book statistics using reduce.
+    Aggregate students using reduce.
+
+    Result contains exactly:
+
+    count
+    sum_avg
+    group_avg
     """
 
     initial = {
         "count": 0,
-        "sum_pages": 0,
-        "author_sum": {},
-        "author_count": {},
+        "sum_avg": 0.0,
+        "group_sum": {},
+        "group_count": {},
     }
 
     def reducer(
         accumulator: dict,
-        book: dict,
+        student: dict,
     ) -> dict:
 
-        author = book["author"]
-        pages = book["pages"]
-
-        accumulator["count"] += 1
-        accumulator["sum_pages"] += pages
-
-        accumulator["author_sum"][author] = (
-            accumulator["author_sum"].get(
-                author,
-                0,
-            )
-            + pages
+        group = student["group"]
+        average = float(
+            student["average"]
         )
 
-        accumulator["author_count"][author] = (
-            accumulator["author_count"].get(
-                author,
+        accumulator["count"] += 1
+
+        accumulator["sum_avg"] += average
+
+        accumulator["group_sum"][group] = (
+            accumulator["group_sum"].get(
+                group,
+                0.0,
+            )
+            + average
+        )
+
+        accumulator["group_count"][group] = (
+            accumulator["group_count"].get(
+                group,
                 0,
             )
             + 1
@@ -64,30 +62,120 @@ def aggregate_books(
 
     result = reduce(
         reducer,
-        books,
+        students,
         initial,
     )
 
-    author_avg = {
-        author: (
-            result["author_sum"][author]
-            / result["author_count"][author]
+    group_avg = {
+        group: (
+            result["group_sum"][group]
+            / result["group_count"][group]
         )
-        for author in result["author_sum"]
+        for group in result["group_sum"]
     }
 
     return {
         "count": result["count"],
-        "sum_pages": result["sum_pages"],
-        "author_avg": author_avg,
+        "sum_avg": result["sum_avg"],
+        "group_avg": group_avg,
     }
 
+
+# ---------------------------------------------------------
+# COMPLETE PIPELINE
+# ---------------------------------------------------------
+
+def process_students(
+    students: list[dict],
+    min_scores: int,
+    selected_group: str,
+    bonus: float,
+    top_n: int,
+) -> dict:
+    """
+    Complete Lab_02 processing pipeline.
+    """
+
+    def filter_operation(
+        data: list[dict],
+    ) -> list[dict]:
+        return [
+            student.copy()
+            for student in data
+            if len(
+                student.get("scores", [])
+            ) >= min_scores
+        ]
+
+    def average_operation(
+        data: list[dict],
+    ) -> list[dict]:
+        return [
+            {
+                **student,
+                "average": (
+                    sum(student["scores"])
+                    / len(student["scores"])
+                    if student["scores"]
+                    else 0.0
+                ),
+            }
+            for student in data
+        ]
+
+    def bonus_operation(
+        data: list[dict],
+    ) -> list[dict]:
+        return [
+            {
+                **student,
+                "average": (
+                    student["average"] + bonus
+                    if student["group"]
+                    == selected_group
+                    else student["average"]
+                ),
+            }
+            for student in data
+        ]
+
+    pipeline = compose(
+        filter_operation,
+        average_operation,
+        bonus_operation,
+    )
+
+    prepared = pipeline(students)
+
+    ranked = sorted(
+        prepared,
+        key=lambda student: (
+            -student["average"],
+            student["name"],
+        ),
+    )
+
+    return {
+        "students": ranked,
+        "top_n": [
+            student.copy()
+            for student in ranked[:top_n]
+        ],
+        "aggregation": aggregate_students(
+            ranked
+        ),
+    }
+
+
+# ---------------------------------------------------------
+# COMPOSE
+# ---------------------------------------------------------
 
 def compose(
     *functions: Callable,
 ) -> Callable:
     """
-    Compose functions from left to right.
+    Function composition.
     """
 
     def pipeline(value):
@@ -101,83 +189,24 @@ def compose(
     return pipeline
 
 
-def build_processing_pipeline(
-    minimum_year: int,
-) -> Callable:
+# ---------------------------------------------------------
+# DECORATED AVERAGE
+# ---------------------------------------------------------
+
+@measure_time
+def calculate_average_for_students(
+    students: list[dict],
+) -> float:
     """
-    Build reusable pipeline.
+    Calculate overall average.
 
-    Closure remembers minimum_year.
-    """
-
-    def filter_by_year(
-        books: list[dict],
-    ) -> list[dict]:
-
-        return [
-            book.copy()
-            for book in books
-            if book["year"] >= minimum_year
-        ]
-
-    def sort_books(
-        books: list[dict],
-    ) -> list[dict]:
-
-        return sorted(
-            books,
-            key=lambda book: (
-                book["year"],
-                book["title"],
-            ),
-        )
-
-    return compose(
-        filter_by_year,
-        sort_books,
-    )
-
-
-def get_top_n(
-    books: list[dict],
-    n: int,
-) -> list[dict]:
-    """
-    Return top N books by pages.
+    Decorated with measure_time.
     """
 
-    if n <= 0:
-        return []
+    if not students:
+        return 0.0
 
-    sorted_books = sorted(
-        books,
-        key=lambda book: (
-            -book["pages"],
-            book["title"],
-        ),
-    )
-
-    return [
-        book.copy()
-        for book in sorted_books[:n]
-    ]
-
-
-def calculate_summary(
-    books: list[dict],
-) -> dict:
-    """Build complete summary."""
-
-    aggregation = aggregate_books(books)
-
-    return {
-        "count": aggregation["count"],
-        "sum_pages": aggregation["sum_pages"],
-        "average_pages": (
-            aggregation["sum_pages"]
-            / aggregation["count"]
-            if aggregation["count"]
-            else 0.0
-        ),
-        "author_avg": aggregation["author_avg"],
-    }
+    return sum(
+        student["average"]
+        for student in students
+    ) / len(students)
