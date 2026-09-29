@@ -1,7 +1,10 @@
 from time import perf_counter
 
 
-def find_linear(books, book_id):
+def find_linear(
+    books: list[dict],
+    book_id: int,
+) -> dict | None:
     for book in books:
         if book["id"] == book_id:
             return book
@@ -9,7 +12,10 @@ def find_linear(books, book_id):
     return None
 
 
-def benchmark(size):
+def benchmark(
+    size: int,
+) -> tuple[float, float, float]:
+
     books = [
         {
             "id": i,
@@ -28,6 +34,11 @@ def benchmark(size):
         for book in books
     }
 
+    ids = {
+        book["id"]
+        for book in books
+    }
+
     start = perf_counter()
 
     find_linear(
@@ -43,10 +54,20 @@ def benchmark(size):
 
     dict_time = perf_counter() - start
 
-    return list_time, dict_time
+    start = perf_counter()
+
+    book_id in ids
+
+    set_time = perf_counter() - start
+
+    return (
+        list_time,
+        dict_time,
+        set_time,
+    )
 
 
-def run_benchmark():
+def run_benchmark() -> None:
     sizes = [
         1000,
         10000,
@@ -54,18 +75,22 @@ def run_benchmark():
     ]
 
     print("\nBenchmark")
-    print("-" * 60)
+    print("-" * 80)
+
     print(
         f"{'Records':<15}"
         f"{'List search':<20}"
         f"{'Dict search':<20}"
+        f"{'Set search':<20}"
     )
 
     for size in sizes:
-        list_time, dict_time = benchmark(size)
+
+        list_time, dict_time, set_time = benchmark(size)
 
         print(
             f"{size:<15}"
             f"{list_time:<20.8f}"
             f"{dict_time:<20.8f}"
+            f"{set_time:<20.8f}"
         )

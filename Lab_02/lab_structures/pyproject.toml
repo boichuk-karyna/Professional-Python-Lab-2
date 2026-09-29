@@ -1,5 +1,13 @@
+
+---
+
+### `pyproject.toml`
+
+Якщо його немає або він пустий:
+
+```toml
 [project]
-name = "book-data-processor"
-version = "1.0.0"
-description = "Analysis of a book accounting system"
-requires-python = ">=3.10"
+name = "professional-python-lab-2"
+version = "0.1.0"
+description = "Library book analysis"
+requires-python = ">=3.12"

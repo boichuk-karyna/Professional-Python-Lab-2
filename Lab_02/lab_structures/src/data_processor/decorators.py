@@ -21,7 +21,7 @@ def measure_time(func):
     return wrapper
 
 
-def repeat(count):
+def repeat(count: int):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):

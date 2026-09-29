@@ -64,18 +64,6 @@ def create_page_filter(
     return predicate
 
 
-def filter_items(
-    items: list[dict],
-    predicate: Callable[[dict], bool],
-) -> list[dict]:
-
-    return [
-        item
-        for item in items
-        if predicate(item)
-    ]
-
-
 def get_page_statistics(
     books: list[dict],
 ) -> tuple[int, int, float]:
@@ -93,3 +81,43 @@ def get_page_statistics(
         max(pages),
         sum(pages) / len(pages),
     )
+
+
+def calculate_author_statistics(
+    books: list[dict],
+) -> dict[str, dict[str, float]]:
+    result = {}
+
+    authors = {
+        book["author"]
+        for book in books
+    }
+
+    for author in authors:
+        author_books = [
+            book
+            for book in books
+            if book["author"] == author
+        ]
+
+        result[author] = {
+            "count": len(author_books),
+            "average_pages": sum(
+                book["pages"]
+                for book in author_books
+            ) / len(author_books),
+        }
+
+    return result
+
+
+def process_pipeline(
+    books: list[dict],
+    *operations: Callable[[list[dict]], list[dict]],
+) -> list[dict]:
+    result = books
+
+    for operation in operations:
+        result = operation(result)
+
+    return result
