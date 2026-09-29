@@ -1,100 +1,148 @@
-from functools import reduce
+from collections import deque
+from collections.abc import Callable
 
-from .processors import (
-    calculate_average,
-    sort_students,
-)
+from data_processor.decorators import measure_time
 
 
-def aggregate_students(students):
-    def reducer(accumulator, student):
-        group = student["group"]
-        average = student["average"]
+@measure_time
+def calculate_average_pages(
+    books: list[dict],
+) -> float:
+    """Calculate average number of pages."""
 
-        accumulator["count"] += 1
-        accumulator["sum_avg"] += average
+    if not books:
+        return 0.0
 
-        if group not in accumulator["group_avg"]:
-            accumulator["group_avg"][group] = []
+    return sum(
+        book["pages"]
+        for book in books
+    ) / len(books)
 
-        accumulator["group_avg"][group].append(average)
 
-        return accumulator
+def find_largest_book(
+    books: list[dict],
+) -> dict | None:
+    """Find the book with the largest number of pages."""
 
-    initial = {
-        "count": 0,
-        "sum_avg": 0.0,
-        "group_avg": {},
-    }
+    if not books:
+        return None
 
-    result = reduce(
-        reducer,
-        students,
-        initial,
+    return max(
+        books,
+        key=lambda book: book["pages"],
     )
 
-    result["group_avg"] = {
-        group: sum(values) / len(values)
-        for group, values in result["group_avg"].items()
+
+def sort_by_year(
+    books: list[dict],
+    reverse: bool = False,
+) -> list[dict]:
+    """Sort books by publication year."""
+
+    return sorted(
+        books,
+        key=lambda book: book["year"],
+        reverse=reverse,
+    )
+
+
+def calculate_average_values(
+    *values: float,
+) -> float:
+    """Calculate average using *args."""
+
+    if not values:
+        return 0.0
+
+    return sum(values) / len(values)
+
+
+def create_record(
+    **fields,
+) -> dict:
+    """Create a dictionary using **kwargs."""
+
+    return dict(fields)
+
+
+def create_year_filter(
+    minimum_year: int,
+    maximum_year: int | None = None,
+) -> Callable[[dict], bool]:
+    """
+    Create a closure that remembers year boundaries.
+    """
+
+    def predicate(book: dict) -> bool:
+        if maximum_year is None:
+            return book["year"] >= minimum_year
+
+        return (
+            minimum_year
+            <= book["year"]
+            <= maximum_year
+        )
+
+    return predicate
+
+
+def create_page_filter(
+    minimum_pages: int,
+) -> Callable[[dict], bool]:
+    """Create a closure for filtering books by page count."""
+
+    def predicate(book: dict) -> bool:
+        return book["pages"] >= minimum_pages
+
+    return predicate
+
+
+def build_summary(
+    books: list[dict],
+    **options,
+) -> dict:
+    """Build summary using keyword configuration."""
+
+    result = {
+        "total_books": len(books),
+        "total_pages": sum(
+            book["pages"]
+            for book in books
+        ),
+        "average_pages": calculate_average_pages(books),
     }
+
+    if options.get("include_authors", False):
+        result["authors"] = {
+            book["author"]
+            for book in books
+        }
+
+    if options.get("include_years", False):
+        result["years"] = {
+            book["year"]
+            for book in books
+        }
 
     return result
 
 
-def compose(*functions):
-    def pipeline(data):
-        result = data
+class OperationHistory:
+    """Store recent operations using deque."""
 
-        for function in functions:
-            result = function(result)
-
-        return result
-
-    return pipeline
-
-
-def process_students(
-    students,
-    min_scores=2,
-    selected_group=None,
-    bonus=0.0,
-    top_n=3,
-):
-    # Не змінюємо оригінальні дані
-    processed = []
-
-    for student in students:
-        if len(student["scores"]) < min_scores:
-            continue
-
-        item = student.copy()
-        item["scores"] = list(student["scores"])
-
-        item["average"] = calculate_average(
-            item["scores"]
+    def __init__(
+        self,
+        max_length: int = 5,
+    ) -> None:
+        self.history = deque(
+            maxlen=max_length
         )
 
-        if (
-            selected_group is not None
-            and item["group"] == selected_group
-        ):
-            item["average"] += bonus
+    def add(
+        self,
+        operation: str,
+    ) -> None:
+        self.history.append(operation)
 
-        processed.append(item)
-
-    sorted_students = sort_students(processed)
-
-    if top_n > 0:
-        top = sorted_students[:top_n]
-    else:
-        top = []
-
-    aggregation = aggregate_students(
-        processed
-    )
-
-    return {
-        "students": processed,
-        "top_n": top,
-        "aggregation": aggregation,
-    }
+    def get_all(self) -> list[str]:
+        return list(self.history)

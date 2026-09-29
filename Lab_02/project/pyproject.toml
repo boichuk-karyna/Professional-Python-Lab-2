@@ -1,18 +1,12 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lab-02"
+name = "book-data-processor"
 version = "1.0.0"
-description = "Lab 02 - Data Structures and Functional Decomposition"
+description = "Lab 02 - Data structures and functional decomposition"
 requires-python = ">=3.10"
 
-[tool.pytest.ini_options]
-pythonpath = [
-    "."
-]
-
-testpaths = [
-    "tests"
-]
+[tool.setuptools.packages.find]
+where = ["src"]

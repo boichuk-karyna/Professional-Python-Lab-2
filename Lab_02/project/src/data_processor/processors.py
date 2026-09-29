@@ -1,101 +1,128 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
+from collections.abc import Callable
 
 
-def calculate_average(scores):
-    if not scores:
-        return 0.0
+def get_unique_authors(
+    books: list[dict],
+) -> set[str]:
+    """Return a set of unique authors."""
 
-    return sum(scores) / len(scores)
-
-
-def calculate_average_values(*values):
-    if not values:
-        return 0.0
-
-    return sum(values) / len(values)
-
-
-def filter_by_min_scores(students, min_scores):
-    return [
-        student
-        for student in students
-        if len(student["scores"]) >= min_scores
-    ]
-
-
-def get_unique_groups(students):
     return {
-        student["group"]
-        for student in students
+        book["author"]
+        for book in books
     }
 
 
-def create_student_index(students):
+def create_book_index(
+    books: list[dict],
+) -> dict[int, dict]:
+    """Create O(1)-average lookup index by book ID."""
+
     return {
-        student["id"]: student
-        for student in students
+        book["id"]: book
+        for book in books
     }
 
 
-def group_students_by_group(students):
-    result = defaultdict(list)
+def create_title_index(
+    books: list[dict],
+) -> dict[str, dict]:
+    """Create lookup index by title."""
 
-    for student in students:
-        result[student["group"]].append(student)
-
-    return dict(result)
-
-
-def create_min_scores_filter(min_scores):
-    def predicate(student):
-        return len(student["scores"]) >= min_scores
-
-    return predicate
+    return {
+        book["title"].lower(): book
+        for book in books
+    }
 
 
-def filter_students(students, predicate):
+def find_book_by_id(
+    books: list[dict],
+    book_id: int,
+) -> dict | None:
+    """Linear search for a book by ID."""
+
+    for book in books:
+        if book["id"] == book_id:
+            return book
+
+    return None
+
+
+def find_book_by_title(
+    books: list[dict],
+    title: str,
+) -> dict | None:
+    """Linear search for a book by title."""
+
+    normalized_title = title.strip().lower()
+
+    for book in books:
+        if book["title"].lower() == normalized_title:
+            return book
+
+    return None
+
+
+def filter_by_year(
+    books: list[dict],
+    start_year: int,
+    end_year: int,
+) -> list[dict]:
+    """Filter books by publication year."""
+
     return [
-        student
-        for student in students
-        if predicate(student)
+        book
+        for book in books
+        if start_year <= book["year"] <= end_year
     ]
 
 
-def get_student_names(students):
-    return list(
-        map(
-            lambda student: student["name"],
-            students,
-        )
+def filter_items(
+    items: list[dict],
+    predicate: Callable[[dict], bool],
+) -> list[dict]:
+    """Generic higher-order filtering function."""
+
+    return [
+        item
+        for item in items
+        if predicate(item)
+    ]
+
+
+def group_books_by_author(
+    books: list[dict],
+) -> dict[str, list[dict]]:
+    """Group books by author using defaultdict."""
+
+    grouped = defaultdict(list)
+
+    for book in books:
+        grouped[book["author"]].append(book)
+
+    return dict(grouped)
+
+
+def count_books_by_author(
+    books: list[dict],
+) -> Counter:
+    """Count books written by each author."""
+
+    return Counter(
+        book["author"]
+        for book in books
     )
 
 
-def get_score_statistics(students):
-    all_scores = [
-        score
-        for student in students
-        for score in student["scores"]
-    ]
+def sort_books(
+    books: list[dict],
+    key: Callable[[dict], object],
+    reverse: bool = False,
+) -> list[dict]:
+    """Universal sorting function."""
 
-    if not all_scores:
-        return (0, 0, 0.0)
-
-    minimum = min(all_scores)
-    maximum = max(all_scores)
-    average = sum(all_scores) / len(all_scores)
-
-    return minimum, maximum, average
-
-
-def sort_students(students):
     return sorted(
-        students,
-        key=lambda student: (
-            -student["average"],
-            student["name"],
-        ),
+        books,
+        key=key,
+        reverse=reverse,
     )
-
-
-def create_record(**kwargs):
-    return dict(kwargs)
