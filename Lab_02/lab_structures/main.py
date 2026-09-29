@@ -1,23 +1,25 @@
 from src.data_processor.analytics import (
     aggregate_books,
     calculate_average_pages,
-    calculate_average_values,
-    calculate_page_statistics,
     compose,
-    create_page_filter,
-    create_record,
+    get_top_n,
 )
-
+from src.data_processor.benchmark import run_benchmark
 from src.data_processor.data import books
-
 from src.data_processor.processors import (
+    calculate_average_values,
     count_books_by_author,
     create_book_index,
-    filter_by_pages,
+    create_record,
+    create_title_index,
+    create_year_filter,
+    filter_books,
     filter_by_year,
     find_book_by_id,
     find_book_by_title,
+    find_book_in_index,
     find_largest_book,
+    get_page_statistics,
     get_unique_authors,
     group_books_by_author,
     sort_by_pages,
@@ -29,120 +31,86 @@ def print_books(
     title: str,
     items: list[dict],
 ) -> None:
-
-    print()
-    print(title)
+    print(f"\n{title}")
     print("-" * 80)
 
     for book in items:
         print(
-            f"{book['id']:2} | "
-            f"{book['title'][:35]:35} | "
-            f"{book['author'][:20]:20} | "
-            f"{book['year']:4} | "
-            f"{book['pages']:4}"
+            f"{book['id']:3} "
+            f"{book['title'][:30]:30} "
+            f"{book['author'][:20]:20} "
+            f"{book['year']:4} "
+            f"{book['pages']:5}"
         )
 
 
 def main() -> None:
-
     print_books(
-        "ALL BOOKS",
+        "All books",
         books,
     )
 
-    authors = get_unique_authors(
-        books
-    )
+    authors = get_unique_authors(books)
+    print("\nUnique authors:")
+    print(authors)
 
+    average = calculate_average_pages(books)
     print(
-        "\nUnique authors:",
-        authors,
+        f"\nAverage pages: {average:.2f}"
     )
 
-    average_pages = calculate_average_pages(
-        books
-    )
+    largest = find_largest_book(books)
 
-    print(
-        f"\nAverage pages: "
-        f"{average_pages:.2f}"
-    )
+    if largest:
+        print(
+            "\nLargest book:",
+            largest["title"],
+            largest["pages"],
+        )
 
-    largest = find_largest_book(
-        books
-    )
+    sorted_books = sort_by_year(books)
 
-    print(
-        "\nLargest book:",
-        largest,
+    print_books(
+        "Sorted by year",
+        sorted_books,
     )
 
     recent_books = filter_by_year(
         books,
-        minimum_year=2015,
+        2019,
     )
 
     print_books(
-        "BOOKS FROM 2015",
+        "Books from 2019+",
         recent_books,
     )
 
-    large_books = filter_by_pages(
-        books,
-        minimum_pages=500,
-    )
+    grouped = group_books_by_author(books)
 
-    print_books(
-        "BOOKS WITH 500+ PAGES",
-        large_books,
-    )
-
-    sorted_books = sort_by_year(
-        books
-    )
-
-    print_books(
-        "SORTED BY YEAR",
-        sorted_books,
-    )
-
-    grouped = group_books_by_author(
-        books
-    )
-
-    print("\nGROUPED BY AUTHOR")
+    print("\nBooks grouped by author:")
 
     for author, author_books in grouped.items():
         print(
-            f"{author}: "
-            f"{len(author_books)} book(s)"
+            author,
+            "->",
+            len(author_books),
         )
 
-    counter = count_books_by_author(
-        books
-    )
+    counter = count_books_by_author(books)
 
-    print(
-        "\nCounter:",
-        counter,
-    )
+    print("\nCounter:")
+    print(counter)
 
-    book_index = create_book_index(
-        books
-    )
+    index = create_book_index(books)
 
     print(
         "\nSearch by ID:",
-        book_index.get(5),
+        find_book_in_index(index, 4),
     )
 
     print(
-        "\nSearch by ID using function:",
-        find_book_by_id(
-            books,
-            5,
-        ),
+        "\nLinear search:",
+        find_book_by_id(books, 2),
     )
 
     print(
@@ -153,98 +121,100 @@ def main() -> None:
         ),
     )
 
-    page_statistics = calculate_page_statistics(
-        books
-    )
+    title_index = create_title_index(books)
 
     print(
-        "\nPage statistics:",
-        page_statistics,
+        "\nTitle index:",
+        title_index.get("Python Basics"),
     )
 
-    demo_average = calculate_average_values(
+    top_books = get_top_n(
+        books,
+        3,
+    )
+
+    print_books(
+        "Top 3 books by pages",
+        top_books,
+    )
+
+    aggregation = aggregate_books(books)
+
+    print("\nAggregation:")
+    print(aggregation)
+
+    statistics = get_page_statistics(books)
+
+    print(
+        "\nPage statistics tuple:",
+        statistics,
+    )
+
+    is_recent = create_year_filter(2019)
+
+    recent = filter_books(
+        books,
+        is_recent,
+    )
+
+    print_books(
+        "Closure filter: year >= 2019",
+        recent,
+    )
+
+    excellent_pages = filter_books(
+        books,
+        lambda book: book["pages"] >= 500,
+    )
+
+    print_books(
+        "Lambda filter: pages >= 500",
+        excellent_pages,
+    )
+
+    pipeline = compose(
+        lambda items: filter_by_year(
+            items,
+            2015,
+        ),
+        lambda items: sort_by_pages(
+            items,
+            reverse=True,
+        ),
+    )
+
+    pipeline_result = pipeline(books)
+
+    print_books(
+        "Function composition pipeline",
+        pipeline_result,
+    )
+
+    average_demo = calculate_average_values(
         100,
         200,
         300,
     )
 
     print(
-        "\nAverage using *args:",
-        demo_average,
+        "\nAverage via *args:",
+        average_demo,
     )
 
-    new_book = create_record(
+    record = create_record(
         id=100,
         title="Demo Book",
         author="Demo Author",
         year=2026,
-        pages=300,
+        pages=200,
     )
 
     print(
-        "\nRecord using **kwargs:",
-        new_book,
+        "\nRecord via **kwargs:",
+        record,
     )
 
-    is_large = create_page_filter(
-        500
-    )
-
-    large_by_closure = [
-        book
-        for book in books
-        if is_large(book)
-    ]
-
-    print_books(
-        "FILTER USING CLOSURE",
-        large_by_closure,
-    )
-
-    pipeline = compose(
-        lambda data: filter_by_year(
-            data,
-            2010,
-        ),
-        sort_by_pages,
-    )
-
-    pipeline_result = pipeline(
-        books
-    )
-
-    print_books(
-        "COMPOSE PIPELINE",
-        pipeline_result,
-    )
-
-    aggregation = aggregate_books(
-        books
-    )
-
-    print(
-        "\nAGGREGATION"
-    )
-
-    print(
-        "Count:",
-        aggregation["count"],
-    )
-
-    print(
-        "Sum pages:",
-        aggregation["sum_pages"],
-    )
-
-    print(
-        "Average pages:",
-        aggregation["average_pages"],
-    )
-
-    print(
-        "Author statistics:",
-        aggregation["author_stats"],
-    )
+    run_benchmark()
 
 
 if __name__ == "__main__":

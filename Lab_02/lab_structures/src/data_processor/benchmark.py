@@ -5,6 +5,7 @@ def find_linear(
     books: list[dict],
     book_id: int,
 ) -> dict | None:
+    """O(n) search in list."""
 
     for book in books:
         if book["id"] == book_id:
@@ -16,6 +17,11 @@ def find_linear(
 def benchmark(
     size: int,
 ) -> tuple[float, float, float]:
+    """
+    Compare list, dict and set lookup.
+
+    Returns a tuple with three execution times.
+    """
 
     books = [
         {
@@ -28,39 +34,28 @@ def benchmark(
         for i in range(size)
     ]
 
-    target_id = size - 1
-
-    book_index = {
+    index = {
         book["id"]: book
         for book in books
     }
 
-    book_ids = {
+    ids = {
         book["id"]
         for book in books
     }
 
+    book_id = size - 1
+
     start = perf_counter()
-
-    find_linear(
-        books,
-        target_id,
-    )
-
+    find_linear(books, book_id)
     list_time = perf_counter() - start
 
     start = perf_counter()
-
-    book_index.get(
-        target_id
-    )
-
+    index.get(book_id)
     dict_time = perf_counter() - start
 
     start = perf_counter()
-
-    target_id in book_ids
-
+    book_id in ids
     set_time = perf_counter() - start
 
     return (
@@ -71,16 +66,16 @@ def benchmark(
 
 
 def run_benchmark() -> None:
+    """Run benchmark for required data sizes."""
 
-    sizes = [
-        1_000,
-        10_000,
-        100_000,
-    ]
+    sizes = (
+        1000,
+        10000,
+        100000,
+    )
 
-    print()
-    print("BENCHMARK")
-    print("-" * 80)
+    print("\nBenchmark")
+    print("-" * 75)
 
     print(
         f"{'Records':<15}"
@@ -90,10 +85,7 @@ def run_benchmark() -> None:
     )
 
     for size in sizes:
-
-        list_time, dict_time, set_time = (
-            benchmark(size)
-        )
+        list_time, dict_time, set_time = benchmark(size)
 
         print(
             f"{size:<15}"
@@ -101,7 +93,3 @@ def run_benchmark() -> None:
             f"{dict_time:<20.8f}"
             f"{set_time:<20.8f}"
         )
-
-
-if __name__ == "__main__":
-    run_benchmark()

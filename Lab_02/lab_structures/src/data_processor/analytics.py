@@ -8,7 +8,7 @@ from src.data_processor.decorators import measure_time
 def calculate_average_pages(
     books: list[dict],
 ) -> float:
-    """Calculate average number of pages."""
+    """Calculate average pages."""
 
     if not books:
         return 0.0
@@ -17,61 +17,6 @@ def calculate_average_pages(
         book["pages"]
         for book in books
     ) / len(books)
-
-
-def calculate_average_values(
-    *values: float,
-) -> float:
-    """Calculate average using *args."""
-
-    if not values:
-        return 0.0
-
-    return sum(values) / len(values)
-
-
-def create_record(
-    **fields,
-) -> dict:
-    """Create dictionary using **kwargs."""
-
-    return dict(fields)
-
-
-def create_page_filter(
-    minimum_pages: int,
-) -> Callable[[dict], bool]:
-    """
-    Closure that remembers minimum_pages.
-    """
-
-    def predicate(book: dict) -> bool:
-        return book["pages"] >= minimum_pages
-
-    return predicate
-
-
-def calculate_page_statistics(
-    books: list[dict],
-) -> tuple[int, int, float]:
-    """
-    Return minimum pages, maximum pages
-    and average pages.
-    """
-
-    if not books:
-        return (0, 0, 0.0)
-
-    pages = [
-        book["pages"]
-        for book in books
-    ]
-
-    return (
-        min(pages),
-        max(pages),
-        sum(pages) / len(pages),
-    )
 
 
 def aggregate_books(
@@ -83,36 +28,34 @@ def aggregate_books(
     Returns:
         count
         sum_pages
-        average_pages
-        author_stats
+        author_avg
     """
 
     initial = {
         "count": 0,
         "sum_pages": 0,
+        "author_sum": {},
         "author_count": {},
-        "author_pages": {},
     }
 
     def reducer(
         accumulator: dict,
         book: dict,
     ) -> dict:
-
         author = book["author"]
         pages = book["pages"]
 
         accumulator["count"] += 1
         accumulator["sum_pages"] += pages
 
+        accumulator["author_sum"][author] = (
+            accumulator["author_sum"].get(author, 0)
+            + pages
+        )
+
         accumulator["author_count"][author] = (
             accumulator["author_count"].get(author, 0)
             + 1
-        )
-
-        accumulator["author_pages"][author] = (
-            accumulator["author_pages"].get(author, 0)
-            + pages
         )
 
         return accumulator
@@ -123,28 +66,18 @@ def aggregate_books(
         initial,
     )
 
-    average_pages = (
-        result["sum_pages"] / result["count"]
-        if result["count"]
-        else 0.0
-    )
-
-    author_stats = {
-        author: {
-            "count": result["author_count"][author],
-            "average_pages": (
-                result["author_pages"][author]
-                / result["author_count"][author]
-            ),
-        }
-        for author in result["author_count"]
+    author_avg = {
+        author: (
+            result["author_sum"][author]
+            / result["author_count"][author]
+        )
+        for author in result["author_sum"]
     }
 
     return {
         "count": result["count"],
         "sum_pages": result["sum_pages"],
-        "average_pages": average_pages,
-        "author_stats": author_stats,
+        "author_avg": author_avg,
     }
 
 
@@ -153,6 +86,12 @@ def compose(
 ) -> Callable:
     """
     Compose functions from left to right.
+
+    Example:
+        pipeline = compose(
+            filter_function,
+            sort_function,
+        )
     """
 
     def pipeline(value):
@@ -164,3 +103,87 @@ def compose(
         return result
 
     return pipeline
+
+
+def build_processing_pipeline(
+    minimum_year: int,
+) -> Callable:
+    """
+    Create a reusable processing pipeline.
+
+    Closure stores minimum_year.
+    """
+
+    def filter_by_year(
+        books: list[dict],
+    ) -> list[dict]:
+        return [
+            book.copy()
+            for book in books
+            if book["year"] >= minimum_year
+        ]
+
+    def sort_books(
+        books: list[dict],
+    ) -> list[dict]:
+        return sorted(
+            books,
+            key=lambda book: (
+                book["year"],
+                book["title"],
+            ),
+        )
+
+    return compose(
+        filter_by_year,
+        sort_books,
+    )
+
+
+def get_top_n(
+    books: list[dict],
+    n: int,
+) -> list[dict]:
+    """
+    Return Top-N books by pages.
+
+    Tie-breaking:
+    1. pages descending
+    2. title ascending
+    """
+
+    if n <= 0:
+        return []
+
+    sorted_books = sorted(
+        books,
+        key=lambda book: (
+            -book["pages"],
+            book["title"],
+        ),
+    )
+
+    return [
+        book.copy()
+        for book in sorted_books[:n]
+    ]
+
+
+def calculate_summary(
+    books: list[dict],
+) -> dict:
+    """Build a complete summary."""
+
+    aggregation = aggregate_books(books)
+
+    return {
+        "count": aggregation["count"],
+        "sum_pages": aggregation["sum_pages"],
+        "average_pages": (
+            aggregation["sum_pages"]
+            / aggregation["count"]
+            if aggregation["count"]
+            else 0.0
+        ),
+        "author_avg": aggregation["author_avg"],
+    }
