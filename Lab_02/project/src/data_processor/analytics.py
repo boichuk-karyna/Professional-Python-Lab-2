@@ -70,7 +70,10 @@ def create_year_filter(
     minimum_year: int,
     maximum_year: int | None = None,
 ) -> Callable[[dict], bool]:
-    """Create a closure for filtering by publication year."""
+    """
+    Create a closure for filtering books
+    by publication year.
+    """
 
     def predicate(book: dict) -> bool:
         if maximum_year is None:
@@ -88,7 +91,7 @@ def create_year_filter(
 def create_page_filter(
     minimum_pages: int,
 ) -> Callable[[dict], bool]:
-    """Create a closure for filtering by minimum pages."""
+    """Create a closure for filtering by pages."""
 
     def predicate(book: dict) -> bool:
         return book["pages"] >= minimum_pages
@@ -151,19 +154,3 @@ def build_summary(
         }
 
     return summary
-
-
-def process_books(
-    books: list[dict],
-    predicate: Callable[[dict], bool] | None = None,
-) -> list[dict]:
-    """Process books using an optional predicate."""
-
-    if predicate is None:
-        return list(books)
-
-    return [
-        book
-        for book in books
-        if predicate(book)
-    ]

@@ -73,5 +73,5 @@ books = [
     },
 ]
 
-# Tuple — immutable benchmark configuration.
+# Tuple — фіксовані розміри для benchmark.
 BENCHMARK_SIZES = (1_000, 10_000, 100_000)

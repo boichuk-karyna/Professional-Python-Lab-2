@@ -26,22 +26,11 @@ def create_book_index(
     }
 
 
-def create_title_index(
-    books: list[dict],
-) -> dict[str, dict]:
-    """Create dictionary index by normalized title."""
-
-    return {
-        book["title"].strip().lower(): book
-        for book in books
-    }
-
-
 def find_book_by_id(
     books: list[dict],
     book_id: int,
 ) -> dict | None:
-    """Search a book by ID in a list. O(n)."""
+    """Find a book by ID using linear search O(n)."""
 
     for book in books:
         if book["id"] == book_id:
@@ -50,20 +39,11 @@ def find_book_by_id(
     return None
 
 
-def find_book_by_index(
-    index: dict[int, dict],
-    book_id: int,
-) -> dict | None:
-    """Search a book by ID in dictionary index. O(1) average."""
-
-    return index.get(book_id)
-
-
 def find_book_by_title(
     books: list[dict],
     title: str,
 ) -> dict | None:
-    """Search a book by title."""
+    """Find a book by title."""
 
     wanted = title.strip().lower()
 
@@ -72,21 +52,6 @@ def find_book_by_title(
             return book
 
     return None
-
-
-def filter_by_author(
-    books: list[dict],
-    author: str,
-) -> list[dict]:
-    """Filter books by author."""
-
-    wanted = author.strip().lower()
-
-    return [
-        book
-        for book in books
-        if book["author"].strip().lower() == wanted
-    ]
 
 
 def filter_by_year(
@@ -115,16 +80,31 @@ def filter_by_year(
     ]
 
 
+def filter_by_author(
+    books: list[dict],
+    author: str,
+) -> list[dict]:
+    """Filter books by author."""
+
+    wanted = author.strip().lower()
+
+    return [
+        book
+        for book in books
+        if book["author"].strip().lower() == wanted
+    ]
+
+
 def filter_items(
-    items: list[dict],
+    books: list[dict],
     predicate: Callable[[dict], bool],
 ) -> list[dict]:
     """Universal higher-order filtering function."""
 
     return [
-        item
-        for item in items
-        if predicate(item)
+        book
+        for book in books
+        if predicate(book)
     ]
 
 
@@ -133,12 +113,12 @@ def group_books_by_author(
 ) -> dict[str, list[dict]]:
     """Group books by author using defaultdict."""
 
-    grouped = defaultdict(list)
+    result = defaultdict(list)
 
     for book in books:
-        grouped[book["author"]].append(book)
+        result[book["author"]].append(book)
 
-    return dict(grouped)
+    return dict(result)
 
 
 def count_books_by_author(

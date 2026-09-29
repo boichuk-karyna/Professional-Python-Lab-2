@@ -1,30 +1,23 @@
+"""Main program for Variant 2 — Library Book Analysis."""
+
 from data_processor.analytics import (
-    OperationHistory,
-    build_summary,
+    aggregate_books,
     calculate_average_pages,
     calculate_average_values,
-    create_page_filter,
     create_record,
     create_year_filter,
     find_largest_book,
-    sort_by_year,
 )
-
-from data_processor.data import (
-    BENCHMARK_SIZES,
-    books,
-)
-
+from data_processor.benchmark import run_benchmark
+from data_processor.data import books
 from data_processor.processors import (
     count_books_by_author,
     create_book_index,
-    create_title_index,
     filter_by_year,
-    filter_items,
-    find_book_by_id,
-    find_book_by_title,
     get_unique_authors,
     group_books_by_author,
+    find_book_by_id,
+    find_book_by_title,
     sort_books,
 )
 
@@ -33,283 +26,183 @@ def print_books(
     title: str,
     items: list[dict],
 ) -> None:
-    """Print books in a readable table."""
+    """Print books in a formatted table."""
 
     print(f"\n{title}")
-    print("-" * 90)
+    print("-" * 100)
+
+    print(
+        f"{'ID':<5}"
+        f"{'Назва':<45}"
+        f"{'Автор':<25}"
+        f"{'Рік':<8}"
+        f"{'Сторінки':<10}"
+    )
+
+    print("-" * 100)
 
     for book in items:
         print(
-            f"{book['id']:3} | "
-            f"{book['title'][:42]:42} | "
-            f"{book['author'][:22]:22} | "
-            f"{book['year']:4} | "
-            f"{book['pages']:4}"
-        )
-
-
-def generate_large_dataset(
-    size: int,
-) -> list[dict]:
-    """Generate a large dataset for benchmarking."""
-
-    return [
-        {
-            "id": index,
-            "title": f"Book {index}",
-            "author": f"Author {index % 100}",
-            "year": 1900 + index % 125,
-            "pages": 100 + index % 900,
-        }
-        for index in range(1, size + 1)
-    ]
-
-
-def benchmark_search(
-    size: int,
-) -> tuple[float, float]:
-    """
-    Compare linear list search with dict lookup.
-    """
-
-    from time import perf_counter
-
-    data = generate_large_dataset(size)
-
-    target_id = size
-
-    start = perf_counter()
-
-    find_book_by_id(
-        data,
-        target_id,
-    )
-
-    list_time = perf_counter() - start
-
-    start = perf_counter()
-
-    index = create_book_index(data)
-
-    index.get(target_id)
-
-    dict_time = perf_counter() - start
-
-    return list_time, dict_time
-
-
-def run_benchmark() -> None:
-    """Run list vs dict benchmark."""
-
-    print("\nBENCHMARK: list search vs dict search")
-    print("-" * 70)
-
-    print(
-        f"{'Records':>12} | "
-        f"{'List search':>15} | "
-        f"{'Dict search':>15}"
-    )
-
-    print("-" * 70)
-
-    for size in BENCHMARK_SIZES:
-        list_time, dict_time = benchmark_search(size)
-
-        print(
-            f"{size:12} | "
-            f"{list_time:15.8f} | "
-            f"{dict_time:15.8f}"
+            f"{book['id']:<5}"
+            f"{book['title'][:42]:<45}"
+            f"{book['author'][:22]:<25}"
+            f"{book['year']:<8}"
+            f"{book['pages']:<10}"
         )
 
 
 def main() -> None:
-    """Run the complete demonstration."""
+    print(
+        "=== АНАЛІЗ СИСТЕМИ ОБЛІКУ КНИГ "
+        "(ВАРІАНТ 2) ==="
+    )
 
-    history = OperationHistory()
-
+    # 1. Виведення всіх книг.
     print_books(
-        "ALL BOOKS",
+        "Усі книги",
         books,
     )
-    history.add("Printed all books")
 
+    # 2. Унікальні автори — set comprehension.
     authors = get_unique_authors(books)
 
     print(
-        "\nUNIQUE AUTHORS:"
+        "\nУнікальні автори (Set):"
     )
 
     for author in sorted(authors):
-        print("-", author)
+        print(f"  - {author}")
 
-    history.add("Found unique authors")
-
+    # 3. Середня кількість сторінок.
     average_pages = calculate_average_pages(
         books
     )
 
     print(
-        f"\nAVERAGE PAGES: "
+        f"\nСередня кількість сторінок: "
         f"{average_pages:.2f}"
     )
 
-    history.add("Calculated average pages")
-
+    # 4. Найбільша книга.
     largest = find_largest_book(books)
 
     if largest:
         print(
-            "\nLARGEST BOOK:"
+            "\nНайбільша книга:"
         )
         print(
-            f"{largest['title']} "
-            f"({largest['pages']} pages)"
+            f"  {largest['title']} — "
+            f"{largest['pages']} сторінок"
         )
 
-    history.add("Found largest book")
+    # 5. Пошук книги за ID.
+    search_id = 5
 
-    grouped = group_books_by_author(books)
+    found_by_id = find_book_by_id(
+        books,
+        search_id,
+    )
 
     print(
-        "\nBOOKS GROUPED BY AUTHOR:"
+        f"\nПошук книги за ID {search_id}:"
+    )
+    print(found_by_id)
+
+    # 6. Пошук книги за назвою.
+    search_title = "1984"
+
+    found_by_title = find_book_by_title(
+        books,
+        search_title,
+    )
+
+    print(
+        f"\nПошук книги за назвою "
+        f"'{search_title}':"
+    )
+    print(found_by_title)
+
+    # 7. Фільтрація за роком.
+    filtered_books = filter_by_year(
+        books,
+        1900,
+        2000,
+    )
+
+    print_books(
+        "Книги, видані з 1900 по 2000 рік",
+        filtered_books,
+    )
+
+    # 8. Сортування за роком.
+    sorted_books = sort_books(
+        books,
+        key=lambda book: book["year"],
+    )
+
+    print_books(
+        "Книги, відсортовані за роком",
+        sorted_books,
+    )
+
+    # 9. Групування за авторами.
+    grouped = group_books_by_author(
+        books
+    )
+
+    print(
+        "\nГрупування книг за авторами:"
     )
 
     for author, author_books in grouped.items():
         print(
-            f"{author}: "
-            f"{len(author_books)} book(s)"
+            f"  - {author}: "
+            f"{len(author_books)} книга(и)"
         )
 
-    history.add("Grouped books by author")
-
-    counter = count_books_by_author(books)
+    # 10. Counter.
+    author_counter = count_books_by_author(
+        books
+    )
 
     print(
-        "\nCOUNTER OF BOOKS BY AUTHOR:"
+        "\nCounter книг за авторами:"
     )
 
-    for author, count in counter.items():
+    for author, count in author_counter.items():
         print(
-            f"{author}: {count}"
+            f"  - {author}: {count}"
         )
 
-    history.add("Counted books by author")
+    # 11. Dict index.
+    index = create_book_index(books)
 
-    recent_books = filter_by_year(
-        books,
-        1950,
-        2000,
+    print(
+        "\nDict-index за ID:"
+    )
+    print(
+        f"Ключ 5 -> {index.get(5)}"
     )
 
+    # 12. Closure.
+    is_recent_book = create_year_filter(
+        1950
+    )
+
+    recent_books = [
+        book
+        for book in books
+        if is_recent_book(book)
+    ]
+
     print_books(
-        "BOOKS PUBLISHED FROM 1950 TO 2000",
+        "Книги після 1950 року "
+        "(Closure)",
         recent_books,
     )
 
-    history.add("Filtered books by year")
-
-    sorted_books = sort_by_year(
-        books
-    )
-
-    print_books(
-        "BOOKS SORTED BY YEAR",
-        sorted_books,
-    )
-
-    history.add("Sorted books by year")
-
-    sorted_by_pages = sort_books(
-        books,
-        key=lambda book: book["pages"],
-        reverse=True,
-    )
-
-    print_books(
-        "BOOKS SORTED BY NUMBER OF PAGES",
-        sorted_by_pages,
-    )
-
-    history.add("Sorted books by pages")
-
-    book = find_book_by_id(
-        books,
-        3,
-    )
-
-    print(
-        "\nSEARCH BY ID = 3:"
-    )
-    print(book)
-
-    history.add("Searched book by ID")
-
-    book = find_book_by_title(
-        books,
-        "1984",
-    )
-
-    print(
-        "\nSEARCH BY TITLE = 1984:"
-    )
-    print(book)
-
-    history.add("Searched book by title")
-
-    index = create_book_index(
-        books
-    )
-
-    print(
-        "\nDICT INDEX SEARCH:"
-    )
-    print(
-        index.get(10)
-    )
-
-    title_index = create_title_index(
-        books
-    )
-
-    print(
-        "\nTITLE INDEX SEARCH:"
-    )
-    print(
-        title_index.get(
-            "the hobbit"
-        )
-    )
-
-    year_filter = create_year_filter(
-        1950,
-        2000,
-    )
-
-    books_from_closure = filter_items(
-        books,
-        year_filter,
-    )
-
-    print_books(
-        "CLOSURE FILTER: 1950-2000",
-        books_from_closure,
-    )
-
-    page_filter = create_page_filter(
-        300
-    )
-
-    long_books = filter_items(
-        books,
-        page_filter,
-    )
-
-    print_books(
-        "CLOSURE FILTER: 300+ PAGES",
-        long_books,
-    )
-
-    average_demo = calculate_average_values(
+    # 13. *args.
+    demo_average = calculate_average_values(
         200,
         300,
         400,
@@ -317,45 +210,61 @@ def main() -> None:
     )
 
     print(
-        "\nAVERAGE USING *args:",
-        average_demo,
+        "\nСереднє через *args:"
+    )
+    print(
+        f"  {demo_average:.2f}"
     )
 
+    # 14. **kwargs.
     new_book = create_record(
         id=11,
-        title="Dune",
-        author="Frank Herbert",
-        year=1965,
-        pages=412,
+        title="Python Programming",
+        author="John Smith",
+        year=2024,
+        pages=500,
     )
 
     print(
-        "\nRECORD CREATED USING **kwargs:"
+        "\nСтворений запис через **kwargs:"
     )
     print(new_book)
 
-    summary = build_summary(
-        books,
-        include_authors=True,
-        include_years=True,
+    # 15. Агрегація.
+    summary = aggregate_books(
+        books
     )
 
     print(
-        "\nSUMMARY:"
+        "\nСтатистика бібліотеки:"
     )
-
-    for key, value in summary.items():
-        print(
-            f"{key}: {value}"
-        )
 
     print(
-        "\nRECENT OPERATIONS:"
+        f"  Кількість книг: "
+        f"{summary['count']}"
     )
 
-    for operation in history.get_all():
-        print("-", operation)
+    print(
+        f"  Загальна кількість сторінок: "
+        f"{summary['total_pages']}"
+    )
 
+    print(
+        f"  Середня кількість сторінок: "
+        f"{summary['average_pages']:.2f}"
+    )
+
+    print(
+        f"  Найстарший рік: "
+        f"{summary['min_year']}"
+    )
+
+    print(
+        f"  Найновіший рік: "
+        f"{summary['max_year']}"
+    )
+
+    # 16. Benchmark.
     run_benchmark()
 
 
