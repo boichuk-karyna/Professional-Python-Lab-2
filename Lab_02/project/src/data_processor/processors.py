@@ -62,10 +62,12 @@ def filter_students(students, predicate):
 
 
 def get_student_names(students):
-    return [
-        student["name"]
-        for student in students
-    ]
+    return list(
+        map(
+            lambda student: student["name"],
+            students,
+        )
+    )
 
 
 def get_score_statistics(students):

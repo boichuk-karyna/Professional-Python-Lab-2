@@ -7,32 +7,38 @@ from .processors import (
 
 
 def aggregate_students(students):
-    count = len(students)
+    def reducer(accumulator, student):
+        group = student["group"]
+        average = student["average"]
 
-    sum_avg = sum(
-        student["average"]
-        for student in students
+        accumulator["count"] += 1
+        accumulator["sum_avg"] += average
+
+        if group not in accumulator["group_avg"]:
+            accumulator["group_avg"][group] = []
+
+        accumulator["group_avg"][group].append(average)
+
+        return accumulator
+
+    initial = {
+        "count": 0,
+        "sum_avg": 0.0,
+        "group_avg": {},
+    }
+
+    result = reduce(
+        reducer,
+        students,
+        initial,
     )
 
-    groups = {}
-
-    for student in students:
-        group = student["group"]
-
-        groups.setdefault(group, []).append(
-            student["average"]
-        )
-
-    group_avg = {
+    result["group_avg"] = {
         group: sum(values) / len(values)
-        for group, values in groups.items()
+        for group, values in result["group_avg"].items()
     }
 
-    return {
-        "count": count,
-        "sum_avg": sum_avg,
-        "group_avg": group_avg,
-    }
+    return result
 
 
 def compose(*functions):
