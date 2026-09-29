@@ -14,18 +14,19 @@ def filter_by_min_scores(
     students: list[dict],
     min_scores: int,
 ) -> list[dict]:
-    """Keep students with enough scores."""
-    return [
-        student.copy()
-        for student in students
-        if len(student["scores"]) >= min_scores
-    ]
+    """Filter students who have enough scores."""
+    return list(
+        filter(
+            lambda student: len(student["scores"]) >= min_scores,
+            students,
+        )
+    )
 
 
 def add_average_score(
     students: list[dict],
 ) -> list[dict]:
-    """Add average score to every student."""
+    """Create new student records with average score."""
     return [
         {
             **student,
@@ -40,7 +41,7 @@ def add_group_bonus(
     selected_group: str,
     bonus: float,
 ) -> list[dict]:
-    """Add bonus to students from selected group."""
+    """Create new records and add bonus to selected group."""
     return [
         {
             **student,
@@ -59,8 +60,8 @@ def sort_students(
 ) -> list[dict]:
     """
     Sort students by:
-    1. average descending
-    2. name ascending
+    1. average descending;
+    2. name ascending.
     """
     return sorted(
         students,
@@ -76,6 +77,9 @@ def get_top_n(
     n: int,
 ) -> list[dict]:
     """Return Top-N students."""
+    if n <= 0:
+        return []
+
     return sort_students(students)[:n]
 
 
@@ -162,25 +166,25 @@ def process_students(
     bonus: float,
     top_n: int,
 ) -> dict:
-    """Complete Lab_02 processing pipeline."""
+    """Process students using a composed functional pipeline."""
 
-    filtered = filter_by_min_scores(
-        students,
-        min_scores,
+    pipeline = compose(
+        lambda data: filter_by_min_scores(
+            data,
+            min_scores,
+        ),
+        add_average_score,
+        lambda data: add_group_bonus(
+            data,
+            selected_group,
+            bonus,
+        ),
     )
 
-    with_average = add_average_score(
-        filtered,
-    )
-
-    with_bonus = add_group_bonus(
-        with_average,
-        selected_group,
-        bonus,
-    )
+    processed_students = pipeline(students)
 
     sorted_students = sort_students(
-        with_bonus,
+        processed_students,
     )
 
     top_students = get_top_n(
