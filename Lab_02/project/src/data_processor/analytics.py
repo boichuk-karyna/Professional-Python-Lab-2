@@ -1,6 +1,5 @@
 """Analytical functions for Variant 2 — Library Book Analysis."""
 
-from collections import deque
 from collections.abc import Callable
 
 from data_processor.decorators import measure_time
@@ -102,6 +101,15 @@ def aggregate_books(
 ) -> dict:
     """Calculate aggregate statistics."""
 
+    if not books:
+        return {
+            "count": 0,
+            "total_pages": 0,
+            "average_pages": 0.0,
+            "min_year": None,
+            "max_year": None,
+        }
+
     total_pages = sum(
         book["pages"]
         for book in books
@@ -110,18 +118,14 @@ def aggregate_books(
     return {
         "count": len(books),
         "total_pages": total_pages,
-        "average_pages": (
-            total_pages / len(books)
-            if books
-            else 0.0
-        ),
+        "average_pages": total_pages / len(books),
         "min_year": min(
-            (book["year"] for book in books),
-            default=None,
+            book["year"]
+            for book in books
         ),
         "max_year": max(
-            (book["year"] for book in books),
-            default=None,
+            book["year"]
+            for book in books
         ),
     }
 
@@ -163,24 +167,3 @@ def process_books(
         for book in books
         if predicate(book)
     ]
-
-
-class OperationHistory:
-    """Store recent operations using deque."""
-
-    def __init__(
-        self,
-        max_length: int = 5,
-    ) -> None:
-        self.history = deque(
-            maxlen=max_length
-        )
-
-    def add(
-        self,
-        operation: str,
-    ) -> None:
-        self.history.append(operation)
-
-    def get_all(self) -> list[str]:
-        return list(self.history)
